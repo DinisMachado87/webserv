@@ -1,5 +1,5 @@
-#include "ListeningSocket.hpp"
 #include "ASocket.hpp"
+#include "Listening.hpp"
 #include "Connection.hpp"
 #include <cerrno>
 #include <cstdint>
@@ -9,16 +9,15 @@
 #include <sys/socket.h>
 
 // Public constructors and destructors
-ListeningSocket::ListeningSocket(uint32_t fd, uint32_t port):
+Listening::Listening(uint32_t fd, uint32_t port):
 	ASocket(fd),
 	_port(port)
 {}
 
-ListeningSocket::~ListeningSocket() {}
-
+Listening::~Listening() {}
 
 // Public Methods
-ListeningSocket* ListeningSocket::create(struct sockaddr_in& sockConfig) {
+Listening* Listening::create(struct sockaddr_in& sockConfig) {
 	const std::string	errMsg = "Error creating Socket: ";
 
 	uint32_t	fdNewSocket = socket(AF_INET, SOCK_STREAM, DEFAULT_PROTOCOL);
@@ -26,12 +25,12 @@ ListeningSocket* ListeningSocket::create(struct sockaddr_in& sockConfig) {
 	if (0 <= fdNewSocket
 		&& OK <= bind(fdNewSocket, (struct sockaddr*)&sockConfig, sizeof(sockConfig))
 		&& OK <= listen(fdNewSocket, BACKLOG_SIZE))
-			return new ListeningSocket(fdNewSocket, sockConfig.sin_port);
+			return new Listening(fdNewSocket, sockConfig.sin_port);
 
 	if (0 > fdNewSocket)
 		close(fdNewSocket);
 	throw std::runtime_error(errMsg + strerror(errno));
 }
 
-void ListeningSocket::handle(uint32_t fd) {
+void Listening::handle(uint32_t fd) {
 }
