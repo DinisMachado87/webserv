@@ -22,17 +22,16 @@ const unsigned char* Token::configDelimiters() {
 	isDelimiter['"'] = 1 << QUOTE;
 	isDelimiter['{'] = 1 << OPENBLOCK;
 	isDelimiter['}'] = 1 << CLOSEBLOCK;
-	isDelimiter['/'] = 1 << SLASH;
 	isDelimiter['#'] = 1 << COMMENT;
 	isDelimiter[';'] = 1 << ENDLINE;
 	return isDelimiter;
 }
 
-bool Token::is(char condition, unsigned char c) {
-	return (_isDelimiter[c] & (1 << condition));
+bool Token::is(const unsigned char condition, const char c) {
+	return (_isDelimiter[(unsigned char)c] & (1 << condition));
 }
 
-unsigned char* Token::next(unsigned char *str) {
+const char* Token::next(const char *str) {
 	_len = 0;
 	_start = NULL;
 
@@ -53,12 +52,12 @@ unsigned char* Token::next(unsigned char *str) {
 
 	_start = str;
 
-	if (_isDelimiter[*str]) {
+	if (_isDelimiter[(unsigned char)(*str)]) {
 		_len = 1;
 		return ++str;
 	}
 
-	while (*str && !_isDelimiter[*str])
+	while (*str && !_isDelimiter[(unsigned char)(*str)])
 		str++;
 	_len = str - _start;
 

@@ -4,13 +4,15 @@ NAME_TESTS		:= $(NAME)_tests
 CXX				:= c++
 CXX_FLAGS		:= -Wall -Werror -Wextra -std=c++98 -MMD -MP
 TEST_FLAGS		:= -lgtest -lgtest_main -lpthread
+LDFLAGS		:=
 
 SRC_DIR			:= srcs
 OBJ_DIR			:= obj
 
 SERVER_DIR		:= server
 SOCKETS_DIR		:= sockets
-MODULES			:= $(SERVER_DIR) $(SOCKETS_DIR)
+PARSER_DIR		:= parser
+MODULES			:= $(SERVER_DIR) $(SOCKETS_DIR) $(PARSER_DIR)
 
 # Includes
 INCLUDE_DIRS	:= $(SRC_DIR) $(addprefix $(SRC_DIR)/,$(MODULES))
@@ -22,9 +24,11 @@ SRCS_SERVER		:= Server.cpp
 SRCS_SOCKET		:= ASocket.cpp \
 				   Listening.cpp \
 				   Connection.cpp
+SRCS_PARSER		:= Token.cpp
 
 SRCS_CORE		:= $(SRCS_SERVER:%.cpp=$(SERVER_DIR)/%.cpp) \
-				   $(SRCS_SOCKET:%.cpp=$(SOCKETS_DIR)/%.cpp)
+				   $(SRCS_SOCKET:%.cpp=$(SOCKETS_DIR)/%.cpp) \
+				   $(SRCS_PARSER:%.cpp=$(PARSER_DIR)/%.cpp)
 
 # Srcs config
 ifeq ($(MAKECMDGOALS),test)
@@ -43,7 +47,15 @@ endif
 
 # Tests config
 ifeq ($(MAKECMDGOALS),test)
-	CXX_FLAGS	+= $(TEST_FLAGS)
+	LDFLAGS	+= $(TEST_FLAGS)
+	NAME		:= $(NAME_TESTS)
+	OBJ_DIR		:= $(OBJ_DIR)_tests
+endif
+
+# Debug test config
+ifeq ($(MAKECMDGOALS),debug_test)
+	CXX_FLAGS	+= -g
+	LDFLAGS		+= $(TEST_FLAGS)
 	NAME		:= $(NAME_TESTS)
 	OBJ_DIR		:= $(OBJ_DIR)_tests
 endif
@@ -55,9 +67,12 @@ DEPS			:= $(OBJS:.o=.d)
 all: $(NAME)
 debug: $(NAME)
 test: $(NAME)
+	./$(NAME)
+debug_test: $(NAME)
+	gdb --args ./$(NAME) --gtest_filter=$(FILTER)
 
 $(NAME): $(OBJS)
-	$(CXX) $(CXX_FLAGS) $(OBJS) -o $(NAME)
+	$(CXX) $(CXX_FLAGS) $(OBJS) $(LDFLAGS) -o $(NAME)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)

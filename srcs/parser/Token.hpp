@@ -5,9 +5,9 @@ class Token {
 protected:
 	const unsigned char* const	_isDelimiter;
 
-	unsigned char*	_start;
-	int				_len;
-	int				_lineN;
+	const char*	_start;
+	int			_len;
+	int			_lineN;
 
 private:
 	// Explicit disables
@@ -20,29 +20,21 @@ public:
 		SPACE,
 		ENDLINE,
 		QUOTE,
-		SLASH,
 		OPENBLOCK,
 		CLOSEBLOCK,
 		COMMENT
 	};
 
-	enum {
-		IS,
-		IS_NOT
-	};
 	// Constructors and destructors
 	Token(const unsigned char* table);
 	~Token();
 
-	// Operators overload
-
-	// Getters and setters
-
+	// Static Method for table generation
+	static const unsigned char* configDelimiters();
 	// Methods
 	void printToken();
-	inline bool is(char condition, unsigned char c);
-	static const unsigned char* configDelimiters();
-	unsigned char* next(unsigned char *str);
+	inline bool is(const unsigned char condition, const char c);
+	const char* next(const char *str);
 
 };
 
