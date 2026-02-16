@@ -1,13 +1,29 @@
 #ifndef TOKEN_HPP
 #define TOKEN_HPP
 
+#include <sys/types.h>
+
 class Token {
 protected:
 	const unsigned char* const	_isDelimiter;
 
-	const char*	_start;
-	int			_len;
-	int			_lineN;
+	const char*		_start;
+	unsigned char	_len;
+	int				_type;
+	int				_lineN;
+
+	enum e_delimiters{
+		WORD,
+		SPACE,
+		NEWLINE,
+		SEMICOLON,
+		COMMENT,
+		QUOTE,
+		OPENBLOCK,
+		CLOSEBLOCK,
+		ENDOFILE,
+		EXCAPE
+	};
 
 private:
 	// Explicit disables
@@ -15,16 +31,6 @@ private:
 	Token& operator=(const Token& other);
 
 public:
-	enum e_delimiters{
-		WORD,
-		SPACE,
-		ENDLINE,
-		QUOTE,
-		OPENBLOCK,
-		CLOSEBLOCK,
-		COMMENT
-	};
-
 	// Constructors and destructors
 	Token(const unsigned char* table);
 	~Token();
@@ -32,8 +38,8 @@ public:
 	// Static Method for table generation
 	static const unsigned char* configDelimiters();
 	// Methods
+	const char* extractQuote(const char *str);
 	void printToken();
-	inline bool is(const unsigned char condition, const char c);
 	const char* next(const char *str);
 
 };

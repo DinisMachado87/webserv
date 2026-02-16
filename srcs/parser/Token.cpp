@@ -1,6 +1,7 @@
 #include "Token.hpp"
 #include <cctype>
 #include <cstddef>
+#include <stdexcept>
 #include <unistd.h>
 
 
@@ -9,6 +10,7 @@ Token::Token(const unsigned char* table):
 	_isDelimiter(table),
 	_start(NULL),
 	_len(0),
+	_type(0),
 	_lineN(0) {}
 
 Token::~Token() {}
@@ -16,57 +18,85 @@ Token::~Token() {}
 // Public Methods
 const unsigned char* Token::configDelimiters() {
 	static unsigned char isDelimiter[256] = {0};
-	isDelimiter[' '] = 1 << SPACE;
-	isDelimiter['\t'] = 1 << SPACE;
-	isDelimiter['\n'] = 1 << SPACE;
-	isDelimiter['"'] = 1 << QUOTE;
-	isDelimiter['{'] = 1 << OPENBLOCK;
-	isDelimiter['}'] = 1 << CLOSEBLOCK;
-	isDelimiter['#'] = 1 << COMMENT;
-	isDelimiter[';'] = 1 << ENDLINE;
+	isDelimiter[' '] = SPACE;
+	isDelimiter['\t'] = SPACE;
+	isDelimiter['\n'] = NEWLINE;
+	isDelimiter['#'] = COMMENT;
+	isDelimiter['"'] = QUOTE;
+	isDelimiter['{'] = OPENBLOCK;
+	isDelimiter['}'] = CLOSEBLOCK;
+	isDelimiter[';'] = SEMICOLON;
+	isDelimiter['\\'] = EXCAPE;
+	isDelimiter['\0'] = ENDOFILE;
 	return isDelimiter;
 }
 
-bool Token::is(const unsigned char condition, const char c) {
-	return (_isDelimiter[(unsigned char)c] & (1 << condition));
+const char* Token::extractQuote(const char *str) {
+	str++;
+	_start = str;
+	while (1) {
+		_type = _isDelimiter[(unsigned char)(*str)];
+		switch (_type) {
+			case NEWLINE :
+			case ENDOFILE :
+				throw std::runtime_error("Error tokenizer: unclosed quote");
+			case QUOTE :
+				_len = str - _start;
+				str++;
+				return str;
+			case EXCAPE :
+				if (*str && *(str + 1))
+					str += 2;
+				continue;
+			default :
+				str++;
+		}
+	}
 }
-
 const char* Token::next(const char *str) {
 	_len = 0;
 	_start = NULL;
 
-	while (*str) {
-		while (*str && is(SPACE, *str))
-			str++;
-
-		if (*str && *str == '#') {
-			while (*str && *str != !'\n')
+	while (1) {
+		_type = _isDelimiter[(unsigned char)(*str)];
+		switch (_type) {
+			case ENDOFILE :
+				return (NULL);
+			// Skip new line;
+			case NEWLINE : 
+				_lineN++;
 				str++;
-
-		} else
-			break;
+				break;
+			// Skip Spaces;
+			case SPACE :  
+				str++;
+				break;
+			// Skip comments;
+			case COMMENT :
+				while (*str && *str != '\n')
+					str++;
+				break;
+			// Extract word
+			case WORD :
+				_start = str;
+				while (*str && WORD == _isDelimiter[(unsigned char)(*str)])
+					str++;
+				_len = str - _start;
+				return str;
+			case QUOTE :
+				return (extractQuote(str));
+			// Extract other single char delimiters
+			default :
+				_start = str;
+				_len = 1;
+				return ++str;
+		}
 	}
-
-	if (!*str)
-		return (NULL);
-
-	_start = str;
-
-	if (_isDelimiter[(unsigned char)(*str)]) {
-		_len = 1;
-		return ++str;
-	}
-
-	while (*str && !_isDelimiter[(unsigned char)(*str)])
-		str++;
-	_len = str - _start;
-
-	return str;
 }
 
 void Token::printToken() {
 	write(1, "\t", 1);
-	for(int i = 0; i < _len; i++)
+	for(unsigned char i = 0; i < _len; i++)
 		write(1, &_start[i], 1);
 	write(1, "\n", 1);
 }
