@@ -1,13 +1,16 @@
-#include <cstddef>
-#include <cstring>
+// Tester
 #include <gtest/gtest.h>
+// Other classes in the project
+#include "Token.hpp"
+#include "StrView.hpp"
+#include "debug.hpp"
+// Library imports
+#include <cstring>
 #include <iostream>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include "Token.hpp"
-#include "debug.hpp"
 
 #define RESET   "\033[0m"
 #define PURPLE  "\033[1;35m"
@@ -18,11 +21,11 @@
 
 class TestableToken: public Token {
 public:
-	using Token::_len;
-	using Token::_start;
-	using Token::_lineN;
+	using		Token::_strV;
+	using		Token::_lineN;
+	std::string	_strBuffer;
 
-	TestableToken(const unsigned char* config): Token(config) {};
+	TestableToken(const unsigned char* config): Token(config, _strBuffer) {};
 	~TestableToken() {};
 };
 
@@ -59,11 +62,11 @@ protected:
 				break;
 
 			std::string expToken = expectedTokens[i];
-			std::string curToken(_token->_start, _token->_len);
+			std::string curToken(_token->_strV.getStart(), _token->_strV.getLen());
 			if (DEBUG_TEST)
 				std::cout << tokensComparison(expToken, curToken, NO_COLOR);
 
-			EXPECT_EQ(_token->_len, expToken.length());
+			EXPECT_EQ(_token->_strV.getLen(), expToken.length());
 			ASSERT_STREQ(curToken.c_str(), expToken.c_str())
 				<< tokensComparison(expToken, curToken, COLOR)
 				<< PURPLE << "\n\n\t|cur input str: " << curStr << RESET;

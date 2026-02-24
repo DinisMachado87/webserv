@@ -1,0 +1,100 @@
+server {
+	listen 8080;
+	server_name localhost;
+	root /var/www/html;
+	index index.html;
+
+	client_max_body_size 1m;
+
+	location / {
+		allowed_methods get post;
+		autoindex off;
+	}
+
+	location /uploads {
+		allowed_methods get post delete;
+		root /var/www/uploads;
+		autoindex on;
+	}
+
+	error_page 404 /404.html;
+}
+
+server {
+	listen 8081;
+	listen 8082;
+	server_name example.com;
+	root /var/www/site2;
+
+	location / {
+		allowed_methods GET;
+	}
+
+	location /cgi-bin {
+		allowed_methods GET POST;
+		cgi_extension .py .php;
+		cgi_path /usr/bin/python3 /usr/bin/php;
+	}
+
+	location /uploads {
+# 1. Accepted HTTP methods
+		allow_methods GET POST DELETE;
+# 2. HTTP redirection
+		return 301 /new-path;
+	# OR
+		rewrite /old /new;
+# 3. Root directory
+		root /var/www/html;
+# 4. Directory listing
+		autoindex on;  # or off
+# 5. Default file for directories
+		index index.html index.htm;
+# 6. File upload
+		upload_enable on;
+		upload_path /var/uploads;
+# 7. CGI execution
+		cgi_extension .php .py;
+		cgi_path /usr/bin/php-cgi;
+	}
+}
+
+
+arrays with undefined length:
+
+listen (per server)
+Can have multiple listen directives
+Example: listen 8080; listen 8081; listen 8082;
+Array of port numbers/addresses
+
+server_name (per server)
+Can be multiple names in one line OR multiple directives
+Example: server_name example.com www.example.com;
+Array of domain names
+
+allowed_methods / allow_methods (per location)
+Example: allowed_methods GET POST DELETE;
+Array of HTTP methods
+
+index (per location)
+Example: index index.html index.htm default.html;
+Array of filenames to try
+
+cgi_extension (per location)
+Example: cgi_extension .py .php .pl;
+Array of file extensions
+
+cgi_path (per location)
+Example: cgi_path /usr/bin/python3 /usr/bin/php;
+Array of interpreter paths
+
+error_page (per server)
+Could have multiple: error_page 404 /404.html; error_page 500 502 /error.html;
+Array of error codes + path pairs
+
+location blocks (per server)
+Unlimited number of locations per server
+Array of Location objects
+
+server blocks (global)
+Unlimited number of servers
+Array of Server

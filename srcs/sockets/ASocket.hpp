@@ -20,12 +20,13 @@ protected:
 
 public:
 	// Constructors and destructors
-	~ASocket();
+	virtual ~ASocket();
 
 	// Methods
 	void setNonBlocking();
+	int getFd() const;
 
-	virtual void handle(uint32_t events) = 0;
+	virtual void handle(int events) = 0;
 };
 
 #endif

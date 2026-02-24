@@ -1,0 +1,68 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/c++",
+      "-Wall",
+      "-Werror",
+      "-Wextra",
+      "-std=c++98",
+      "-Isrcs",
+      "-Isrcs/engine",
+      "-Isrcs/server",
+      "-Isrcs/sockets",
+      "-Isrcs/parser",
+      "-Isrcs/utils",
+      "-c",
+      "-o",
+      "obj/main.o",
+      "srcs/main.cpp"
+    ],
+    "directory": "/home/dm87/CODE/my_webserv",
+    "file": "/home/dm87/CODE/my_webserv/srcs/main.cpp",
+    "output": "/home/dm87/CODE/my_webserv/obj/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/c++",
+      "-Wall",
+      "-Werror",
+      "-Wextra",
+      "-std=c++98",
+      "-Isrcs",
+      "-Isrcs/engine",
+      "-Isrcs/server",
+      "-Isrcs/sockets",
+      "-Isrcs/parser",
+      "-Isrcs/utils",
+      "-c",
+      "-o",
+      "obj/engine/Engine.o",
+      "srcs/engine/Engine.cpp"
+    ],
+    "directory": "/home/dm87/CODE/my_webserv",
+    "file": "/home/dm87/CODE/my_webserv/srcs/engine/Engine.cpp",
+    "output": "/home/dm87/CODE/my_webserv/obj/engine/Engine.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/c++",
+      "-Wall",
+      "-Werror",
+      "-Wextra",
+      "-std=c++98",
+      "-Isrcs",
+      "-Isrcs/engine",
+      "-Isrcs/server",
+      "-Isrcs/sockets",
+      "-Isrcs/parser",
+      "-Isrcs/utils",
+      "-c",
+      "-o",
+      "obj/server/Server.o",
+      "srcs/server/Server.cpp"
+    ],
+    "directory": "/home/dm87/CODE/my_webserv",
+    "file": "/home/dm87/CODE/my_webserv/srcs/server/Server.cpp",
+    "output": "/home/dm87/CODE/my_webserv/obj/server/Server.o"
+  }
+]

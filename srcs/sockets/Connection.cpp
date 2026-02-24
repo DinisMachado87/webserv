@@ -2,9 +2,11 @@
 #include "ASocket.hpp"
 
 // Public constructors and destructors
-Connection::Connection(uint32_t fd): ASocket(fd) {}
+Connection::Connection(int fd): ASocket(fd) {}
 
 Connection::~Connection() {}
 
 // Public Methods
-void Connection::Handle() {}
+void Connection::handle(int events) {
+	(void)events;
+};

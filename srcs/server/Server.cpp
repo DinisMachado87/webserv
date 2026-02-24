@@ -1,28 +1,28 @@
+#include "StrView.hpp"
+#include "Token.hpp"
+#include "webServ.hpp"
 #include "Server.hpp"
-#include "Listening.hpp"
+#include <cerrno>
+#include <stdexcept>
+#include <stdint.h>
 #include <cstring>
 #include <netinet/in.h>
-#include <stdexcept>
 #include <string>
+#include <unistd.h>
+#include <vector>
 
-// Public constructors and destructors
-Server::Server() {
-	struct sockaddr_in config;
-	config.sin_family = AF_INET;
-	config.sin_addr.s_addr = htonl(INADDR_ANY);
-	config.sin_port = htonl(8080);
 
-	Listening::create(config);
-	epoll_init();
+Server::Server() {};
+Server::~Server() { }
+
+// Private Methods
+void Server::reserve(
+	unsigned int sizeStrBuf,
+	unsigned int sizeStrvVecBuf,
+	unsigned int sizeintVecBuf)
+{
+	_strBuf.reserve(sizeStrBuf);
+	_strvVecBuf.reserve(sizeStrvVecBuf);
+	_intVecBuf.reserve(sizeintVecBuf);
 }
 
-Server::Server(const Server& other) {}
-
-Server::~Server() {}
-
-// Public Methods
-void Server::epoll_init() {
-	_fd_epool = epoll_create(1);
-	if (_fd_epool < 0)
-		throw std::runtime_error(std::string("Error Epoll_create: ") + strerror(errno));
-}

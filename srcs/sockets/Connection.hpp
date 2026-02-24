@@ -2,7 +2,7 @@
 #define CONNECTION_HPP
 
 #include "ASocket.hpp"
-#include <cstdint>
+#include <stdint.h>
 
 class Connection: public ASocket {
 private:
@@ -13,7 +13,7 @@ private:
 
 public:
 	// Constructors and destructors
-	Connection(uint32_t fd);
+	Connection(int fd);
 	~Connection();
 
 	// Operators overload
@@ -21,8 +21,7 @@ public:
 	// Getters and setters
 
 	// Methods
-	void Handle();
-
+	void handle(int events);
 };
 
 #endif

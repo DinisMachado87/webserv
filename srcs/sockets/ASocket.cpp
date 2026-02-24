@@ -5,12 +5,16 @@
 ASocket::ASocket(int fd): _fd(fd) {
 	if (_fd < 0)
 		throw std::invalid_argument("Invalid FD");
-
-	setNonBlocking();
+	try {
+		setNonBlocking();
+	} catch (...) {
+		close(_fd);
+		throw;
+	}
 }
 
 ASocket::~ASocket() {
-	if (_fd < 0)
+	if (_fd >= 0)
 		close(_fd);
 }
 
@@ -24,5 +28,6 @@ void ASocket::setNonBlocking() {
 }
 
 // Public Methods
+int ASocket::getFd() const { return (_fd); }
 
 

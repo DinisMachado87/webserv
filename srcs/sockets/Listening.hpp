@@ -1,9 +1,18 @@
 #ifndef LISTENINGSOCKET_HPP
 #define LISTENINGSOCKET_HPP
 
+// Base class
 #include "ASocket.hpp"
-#include <cstdint>
+// Other classes within the project
+#include "Connection.hpp"
+// Libs
+#include <stdint.h>
 #include <string>
+#include <cstring>
+// Error handling
+#include <stdexcept>
+#include <cerrno>
+// Networking
 #include <sys/socket.h>
 #include <netinet/in.h>
 
@@ -13,10 +22,10 @@
 
 class Listening: public ASocket {
 private:
-	uint32_t	_port;
+	int	_port;
 	std::string	_host;
 	// Constructor
-	Listening(uint32_t fd, uint32_t port);
+	Listening(int fd, int port);
 	// Explicit Disables
 	Listening();
 	Listening(const Listening& other);
@@ -27,7 +36,7 @@ public:
 	~Listening();
 	// Methods
 	static Listening*	create(struct sockaddr_in& config);
-	void				handle(uint32_t fd);
+	void				handle(int fd);
 };
 
 #endif
