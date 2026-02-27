@@ -23,6 +23,7 @@ class TestableToken: public Token {
 public:
 	using		Token::_strV;
 	using		Token::_lineN;
+
 	std::string	_strBuffer;
 
 	TestableToken(const unsigned char* config): Token(config, _strBuffer) {};
@@ -45,22 +46,17 @@ protected:
 
 	std::string tokensComparison(std::string expToken, std::string curToken, bool color) {
 		std::ostringstream tokensComparison;
-		tokensComparison
-			<< "\n\n\tLine: " << _token->_lineN;
+		tokensComparison << "\n\n\tLine: " << _token->_lineN;
 		tokenInfoStream((color ? PURPLE : RESET), "expected", expToken, tokensComparison);
 		tokenInfoStream((color ? ORANGE : RESET), "received", curToken, tokensComparison);
 		return (tokensComparison.str());
 	}
 
-	void testTokenSequence(const char* inputStr, std::string* expectedTokens) {
+	void testTokenSequence(std::string& inputStr, std::string* expectedTokens) {
+		_token->LoadParsingString(inputStr);
+		
 		int i = 0;
-
-		while(*inputStr) {
-			const char* curStr = inputStr;
-			inputStr = _token->next(inputStr);
-			if (!inputStr)
-				break;
-
+		while(Token::ENDOFILE != _token->next()) {
 			std::string expToken = expectedTokens[i];
 			std::string curToken(_token->_strV.getStart(), _token->_strV.getLen());
 			if (DEBUG_TEST)
@@ -69,7 +65,7 @@ protected:
 			EXPECT_EQ(_token->_strV.getLen(), expToken.length());
 			ASSERT_STREQ(curToken.c_str(), expToken.c_str())
 				<< tokensComparison(expToken, curToken, COLOR)
-				<< PURPLE << "\n\n\t|cur input str: " << curStr << RESET;
+				<< PURPLE << "\n\n\t|cur input str: " << _token->_strV.getStart() << RESET;
 			i++;
 		}
 		if (DEBUG_TEST)
@@ -80,20 +76,20 @@ protected:
 TEST_F(TokenConfigTest, consecutiveDelimiters) {
 	std::string testStr("{{{");
 	std::string expectedTokens[] = {"{", "{", "{"};
-	testTokenSequence(testStr.c_str(), expectedTokens);
+	testTokenSequence(testStr, expectedTokens);
 };
 
 TEST_F(TokenConfigTest, withQuotes) {
 	std::string testStr("something \"in quotes followed by \" unquoted");
 	std::string expectedTokens[] = {"something", "in quotes followed by ", "unquoted"};
-	testTokenSequence(testStr.c_str(), expectedTokens);
+	testTokenSequence(testStr, expectedTokens);
 };
 
 TEST_F(TokenConfigTest, unclosedQuotes) {
 	std::string testStr("something \"  unclosed ");
-	const char* inputStr = testStr.c_str();
-	inputStr = _token->next(inputStr);
-	ASSERT_THROW(_token->next(inputStr), std::runtime_error);
+	_token->LoadParsingString(testStr);
+	_token->next();
+	ASSERT_THROW(_token->next(), std::runtime_error);
 }
 
 TEST_F(TokenConfigTest, Basic) {
@@ -101,5 +97,5 @@ TEST_F(TokenConfigTest, Basic) {
 
 	std::string expectedTokens[] = {"server", "{", "listen", "8080", ";", "server_name", "localhost", ";", "root", "/var/www/html", ";", "index", "index.html", ";", "client_max_body_size", "1M", ";", "error_page", "404", "/404.html", ";", "location", "/", "{", "allowed_methods", "GET", "POST", ";", "autoindex", "on", ";", "}", "location", "/upload", "{", "allowed_methods", "POST", "DELETE", ";", "upload_path", "/var/www/uploads", ";", "}", "location", ".php", "{", "cgi_pass", "/usr/bin/php-cgi", ";", "}", "}"};
 
-	testTokenSequence(testStr.c_str(), expectedTokens);
+	testTokenSequence(testStr, expectedTokens);
 }

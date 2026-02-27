@@ -59,7 +59,7 @@ endif
 
 # Compiler flags
 ifdef IS_DEBUG
-	CXX_FLAGS	+= -g
+	CXX_FLAGS	+= -ggdb -D_GLIBCXX_DEBUG
 endif
 
 # Linker flags

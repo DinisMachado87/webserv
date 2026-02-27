@@ -9,7 +9,6 @@
 class Expect {
 private:
 	Token&				_token;
-	const char*&		_curStr;
 	unsigned char&		_curType;
 
 	// Explicit disables
@@ -23,12 +22,11 @@ private:
 
 public:
 	// Constructors and destructors
-	Expect(Token& token, const char*& curStr, unsigned char& curType);
+	Expect(Token& token, unsigned char& curType);
 	~Expect();
 
 	// Methods
-	void			type(unsigned char type, const char* str);
-	void			word(const char *str1);
+	unsigned char	word(const char *str1);
 	Span<StrView>	wordVec(std::vector<StrView>& vecBuf, unsigned int& vecCursor);
 	bool			onOff();
 	int				integer();

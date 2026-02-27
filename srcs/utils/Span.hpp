@@ -7,23 +7,18 @@
 template<typename T>
 class Span {
 private:
-	std::vector<T>*	_vecBuf;
-	unsigned int	_offset;
-	unsigned char	_len;
+	std::vector<T>&		_vecBuf;
+	unsigned int		_offset;
+	unsigned char		_len;
 	
 	
 public:
-	Span():
-		_vecBuf(NULL),
-		_offset(0),
-		_len(0) {}
-
-	Span(std::vector<T>* vecBuf):
+	Span(std::vector<T>& vecBuf):
 		_vecBuf(vecBuf),
 		_offset(0),
 		_len(0) {}
 
-	Span(std::vector<T>* vecBuf, unsigned int offset, unsigned char len):
+	Span(std::vector<T>& vecBuf, unsigned int offset, unsigned char len):
 		_vecBuf(vecBuf),
 		_offset(offset),
 		_len(len) {}
@@ -39,7 +34,6 @@ public:
 	Span& operator=(const Span& other) {
 		if (this == &other) return *this;
 
-		_vecBuf = other._vecBuf;
 		_offset = other._offset;
 		_len = other._len;
 		return *this;

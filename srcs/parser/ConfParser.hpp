@@ -15,15 +15,15 @@ private:
 	enum e_state { NONE, SERVER, LOCATION, ENDOFILE };
 	enum e_block { INIT_LOCATION, ENDLINE, ENDBLOCK, ENDFILE };
 
-	std::vector<Server *>	_servers;
+	std::vector<Server *>&	_servers;
 	Server*					_newServer;
 	Location				_newLocation;
 
-	const char*			_curStrConfig;
-	unsigned int		_vecCursor;
-	Token				_token;
-	unsigned char		_curType;
-	Expect				_expect;
+	const char*		_curStrConfig;
+	unsigned int	_vecCursor;
+	Token			_token;
+	unsigned char	_curType;
+	Expect			_expect;
 
 	// Explicit disables
 	ConfParser();
@@ -31,7 +31,6 @@ private:
 	ConfParser(const ConfParser& other);
 
 	// Methods
-	std::vector<Server*>	createServers();
 	void			nextServer();
 	unsigned char	parseServer();
 	void			parseServerLine();
@@ -42,14 +41,14 @@ private:
 
 	// Error handler
 	std::runtime_error	parsingErr(const char* expected) const ;
-
+	
 public:
 	// Constructors and destructors
-	ConfParser(std::string configStr);
+	ConfParser(std::string configStr, std::vector<Server*>& servers);
 	~ConfParser();
 
 	// Methods
-	Server*			next();
+	void	createServers();
 };
 
 #endif

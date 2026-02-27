@@ -13,13 +13,15 @@
 #include <vector>
 
 // Public constructors and destructors
-ConfParser::ConfParser(std::string configStr):
+ConfParser::ConfParser(std::string configStr, std::vector<Server*>& servers):
+	_servers(servers),
 	_newServer(new Server()),
+	_newLocation(_newServer->_strBuf, _newServer->_strvVecBuf,&_newServer->_defaults),
 	_curStrConfig(configStr.c_str()),
 	_vecCursor(0),
 	_token(Token::configDelimiters(), _newServer->_strBuf),
 	_curType(0),
-	_expect(_token, _curStrConfig, _curType)
+	_expect(_token, _curType)
 {
 	_newServer->reserve(configStr.length() * 0.6, 10, 10);
 };
@@ -44,13 +46,12 @@ void	ConfParser::parseMethod() {
 	const unsigned char size = 5;
 
 	while (1) {
-		_curStrConfig = _token.next(_curStrConfig);
+		_token.next();
 		switch (_token.getType()) {
 			case Token::SEMICOLON:
 				if (_newLocation._allowedMethods == Location::DEFAULT)
 					throw parsingErr("Method definition");
 				return;
-
 			case Token::WORD: {
 				for (int i = 1; i < size; i++) {
 					if (OK == _token.compare(methods[i])) {
@@ -63,14 +64,12 @@ void	ConfParser::parseMethod() {
 				method_found:
 				break;
 			}
-
 			default:
 				throw parsingErr("Method definition");
 		}
 	}
 }
 
-// Helper: Apply size unit multiplier
 bool	ConfParser::parseOverrides(Overrides& overrides) {
 	if (_token.compare("root"))
 		overrides._root = _expect.path();
@@ -94,8 +93,10 @@ void	ConfParser::parseLocationParam() {
 	else if (_token.compare("return")) {
 		_newLocation._returnCode = _expect.integer();
 		_newLocation._returnPath = _expect.path();
-	} else if (_token.compare("rewrite"))
-		_expect.paths(_newLocation._rewrite, 2);
+	} else if (_token.compare("rewrite")){
+		_newLocation._rewrite_old = _expect.path();
+		_newLocation._rewrite_new = _expect.path();
+	}
 	else if (_token.compare("upload_enable"))
 		_newLocation._uploadEnable = _expect.onOff();
 	else if (_token.compare("upload_path"))
@@ -103,17 +104,17 @@ void	ConfParser::parseLocationParam() {
 	else if (_token.compare("cgi_extension"))
 		_newLocation._cgiExtensions = _expect.wordVec(_newServer->_strvVecBuf, _vecCursor);
 	else if (_token.compare("cgi_path"))
-		_newLocation._cgiPath = _expect.path();
+		_newLocation._cgiPath = _expect.wordVec(_newServer->_strvVecBuf, _vecCursor);
 	else if (!parseOverrides(_newLocation._overrides))
 		throw parsingErr("Unknown directive");
 }
 
 void	ConfParser::parseLocation() {
 	_newLocation._path = _expect.path();
-	_expect.type(Token::OPENBLOCK, "{");
+	_token.getNextOfType(Token::OPENBLOCK, "{");
 
 	while (1) {
-		_curStrConfig = _token.next(_curStrConfig);
+		_token.next();
 		switch (_token.getType()) {
 			case Token::CLOSEBLOCK:
 				_newServer->_locations.push_back(_newLocation);
@@ -132,8 +133,8 @@ void	ConfParser::parseServerLine() {
 		int num1 = _expect.integer();
 		int num2 = _expect.integer();
 		Listen listen;
-		listen.host = num1;
-		listen.port = num2;
+		listen._host = num1;
+		listen._port = num2;
 
 		_newServer->_listen.push_back(listen);
 	}
@@ -143,16 +144,16 @@ void	ConfParser::parseServerLine() {
 
 void	ConfParser::nextServer() {
 	while (1) {
-		_curStrConfig = _token.next(_curStrConfig);
+		_token.next();
 		_curType = _token.getType();
 
 		if (Token::WORD == _curType) {
 			if (_token.compare("location"))
 				parseLocation();
-			else 
-				parseServerLine();
+			else parseServerLine();
 		}
 		else if (Token::CLOSEBLOCK == _curType) {
+			_token.consolidateBuffer(_newServer->_strBuf);
 			_servers.push_back(_newServer);
 			_newServer = new Server();
 			return;
@@ -161,22 +162,19 @@ void	ConfParser::nextServer() {
 	}
 }
 
-std::vector<Server*>	ConfParser::createServers() {
+void	ConfParser::createServers() {
 	while (1) {
-		_curStrConfig = _token.next(_curStrConfig);
-		_curType = _token.getType();
+		switch (_token.next()) {
+			case Token::WORD:
+				if (_token.compare("server"))
+					_token.getNextOfType(Token::OPENBLOCK, "{");
+				else throw parsingErr("\"server\"");
+				break;
+			case Token::ENDOFILE:
+				return;
+			default: throw parsingErr("{");
 
-		if (_curType == Token::ENDOFILE) {
-			delete _newServer;
-			return _servers;
+			nextServer();
 		}
-		else if (_curType == Token::WORD) {
-			if (_token.compare("server"))
-				_expect.type(Token::OPENBLOCK, "{");
-			else throw parsingErr("\"server\"");
-		}
-		else throw parsingErr("{");
-
-		nextServer();
 	}
 }
