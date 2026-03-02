@@ -11,11 +11,11 @@
 #include <string>
 
 // Public constructors and destructors
-Engine::Engine(struct sockaddr_in& config): _fdEpoll(-1) {
+Engine::Engine(): _fdEpoll(-1) {
 	epoll_init();
 
-	ASocket* newSocket = Listening::create(config);
-	addSocket(newSocket);
+	// ASocket* newSocket = Listening::create(config);
+	// addSocket(newSocket);
 }
 
 Engine::~Engine() {

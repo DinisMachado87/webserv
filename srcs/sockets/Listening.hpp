@@ -4,10 +4,9 @@
 // Base class
 #include "ASocket.hpp"
 // Other classes within the project
-#include "Connection.hpp"
+#include "Server.hpp"
 // Libs
 #include <stdint.h>
-#include <string>
 #include <cstring>
 // Error handling
 #include <stdexcept>
@@ -22,20 +21,20 @@
 
 class Listening: public ASocket {
 private:
-	int	_port;
-	std::string	_host;
 	// Constructor
-	Listening(int fd, int port);
+	Listening(int fd, const Server& server);
 	// Explicit Disables
 	Listening();
 	Listening(const Listening& other);
 	Listening& operator=(const Listening& other);
+	// Error handeling
+	static std::runtime_error	handleError();
 
 public:
 	// Constructors and destructors
 	~Listening();
 	// Methods
-	static Listening*	create(struct sockaddr_in& config);
+	static Listening*	create(const Server& server, const Listen& listenSock);
 	void				handle(int fd);
 };
 

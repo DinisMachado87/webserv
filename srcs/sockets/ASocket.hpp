@@ -2,8 +2,9 @@
 #define ASOCKET_HPP
 
 #include <unistd.h>
-#include <fcntl.h>
 #include <stdint.h>
+
+class Server;
 
 class ASocket {
 private:
@@ -13,10 +14,11 @@ private:
 	ASocket& operator=(const ASocket& other);
 
 protected:
-	int	_fd;
+	int		_fd;
+	const Server&	_server;
 
 	// Constructors and destructors
-	ASocket(int fd);
+	ASocket(int fd, const Server& server);
 
 public:
 	// Constructors and destructors

@@ -5,10 +5,12 @@
 #include <map>
 #include <sys/epoll.h>
 #include <netinet/in.h>
+#include <vector>
 
 class Engine {
 protected:
 	int						_fdEpoll;
+	std::vector<Server *>	_servers;
 	std::map<int, ASocket*>	_sockets;
 
 	// Explicit Disables

@@ -60,7 +60,7 @@ TEST_F(ConfParserTest, ServerWithIndexAndAutoindex) {
 	);
 
 	ASSERT_EQ(_servers.size(), 1);
-	EXPECT_EQ(_servers[0]->_defaults._index.size(), 3);
+	EXPECT_EQ(_servers[0]->_defaults._index.len(), 3);
 	EXPECT_EQ(strv(_servers[0]->_defaults._index[0]), "index.html");
 	EXPECT_EQ(strv(_servers[0]->_defaults._index[1]), "index.htm");
 	EXPECT_EQ(strv(_servers[0]->_defaults._index[2]), "default.html");
@@ -93,9 +93,9 @@ TEST_F(ConfParserTest, ErrorPages) {
 
 	ASSERT_EQ(_servers.size(), 1);
 	EXPECT_EQ(_servers[0]->_defaults._error.size(), 3);
-	EXPECT_EQ(strv(_servers[0]->_defaults._error[404]), "/404.html");
-	EXPECT_EQ(strv(_servers[0]->_defaults._error[500]), "/500.html");
-	EXPECT_EQ(strv(_servers[0]->_defaults._error[403]), "/forbidden.html");
+	EXPECT_EQ(_servers[0]->_defaults.findErrorFile(404), "/404.html");
+	EXPECT_EQ(_servers[0]->_defaults.findErrorFile(500), "/500.html");
+	EXPECT_EQ(_servers[0]->_defaults.findErrorFile(403), "/forbidden.html");
 }
 
 TEST_F(ConfParserTest, LocationBasic) {
@@ -177,19 +177,21 @@ TEST_F(ConfParserTest, LocationCGI) {
 		"server {\n"
 		"  location /cgi-bin {\n"
 		"    cgi_extension .py .php .pl;\n"
-		"    cgi_path /usr/bin/python3;\n"
+		"    cgi_path /usr/bin/python3 /usr/bin/php /usr/bin/ruby;\n"
 		"  }\n"
 		"}"
 	);
 
 	ASSERT_EQ(_servers.size(), 1);
 	ASSERT_EQ(_servers[0]->_locations.size(), 1);
-	EXPECT_EQ(_servers[0]->_locations[0]._cgiExtensions.size(), 3);
+	EXPECT_EQ(_servers[0]->_locations[0]._cgiExtensions.len(), 3);
 	EXPECT_EQ(strv(_servers[0]->_locations[0]._cgiExtensions[0]), ".py");
 	EXPECT_EQ(strv(_servers[0]->_locations[0]._cgiExtensions[1]), ".php");
 	EXPECT_EQ(strv(_servers[0]->_locations[0]._cgiExtensions[2]), ".pl");
-	EXPECT_EQ(strv(_servers[0]->_locations[0]._cgiPath), "/usr/bin/python3");
-}
+    EXPECT_EQ(_servers[0]->_locations[0]._cgiPath.len(), 3);
+    EXPECT_EQ(strv(_servers[0]->_locations[0]._cgiPath[0]), "/usr/bin/python3");
+    EXPECT_EQ(strv(_servers[0]->_locations[0]._cgiPath[1]), "/usr/bin/php");
+    EXPECT_EQ(strv(_servers[0]->_locations[0]._cgiPath[2]), "/usr/bin/ruby");}
 
 TEST_F(ConfParserTest, LocationOverrides) {
 	parse(

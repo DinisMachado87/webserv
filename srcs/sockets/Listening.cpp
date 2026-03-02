@@ -1,29 +1,54 @@
 #include "Listening.hpp"
+#include "ASocket.hpp"
+#include "Server.hpp"
+#include "webServ.hpp"
+#include <asm-generic/socket.h>
+#include <cerrno>
+#include <cstring>
+#include <netinet/in.h>
+#include <stdexcept>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+
+std::runtime_error	Listening::handleError() {
+	return std::runtime_error(
+		std::string("Error creating Listening Socket: ")
+		+ strerror(errno));
+}
 
 // Public constructors and destructors
-Listening::Listening(int fd, int port):
-	ASocket(fd),
-	_port(port)
-{}
+Listening::Listening(int fd, const Server& server):
+	ASocket(fd, server) { }
 
 Listening::~Listening() {}
 
 // Public Methods
-Listening* Listening::create(struct sockaddr_in& sockConfig) {
-	const std::string	errMsg = "Error creating Socket: ";
+Listening* Listening::create(const Server& server, const Listen& listenSock) {
+	struct sockaddr_in	addr = {
+		AF_INET,
+		htons(listenSock.getPort()),
+		{listenSock.getHost()},
+		{0}
+	};
 
-	int	fdNewSocket = socket(AF_INET, SOCK_STREAM, DEFAULT_PROTOCOL);
+	int	fdSock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
 
-	if (0 <= fdNewSocket
-		&& OK == bind(fdNewSocket, (struct sockaddr*)&sockConfig, sizeof(sockConfig))
-		&& OK == listen(fdNewSocket, BACKLOG_SIZE))
-			return new Listening(fdNewSocket, sockConfig.sin_port);
+	int enable = 1;
 
-	if (0 < fdNewSocket)
-		close(fdNewSocket);
-	throw std::runtime_error(errMsg + strerror(errno));
+	if (0 <= fdSock
+		&& OK == setsockopt(fdSock, SOL_SOCKET, SO_REUSEADDR,
+					  &enable, sizeof(enable))
+		&& OK == bind(fdSock, (struct sockaddr*)&addr, sizeof(addr))
+		&& OK == listen(fdSock, SOMAXCONN))
+		return new Listening(fdSock, server);
+
+	if (0 < fdSock)
+		close(fdSock);
+	throw handleError();
 }
 
 void Listening::handle(int fd) {
 	(void)fd;
 }
+
+

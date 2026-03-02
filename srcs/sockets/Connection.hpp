@@ -2,18 +2,19 @@
 #define CONNECTION_HPP
 
 #include "ASocket.hpp"
+#include "Server.hpp"
 #include <stdint.h>
+#include <sys/epoll.h>
 
 class Connection: public ASocket {
 private:
 	// Explicit disables
-	Connection();
+	Connection(int fd, Server& server);
 	Connection(const Connection& other);
 	Connection& operator=(const Connection& other);
 
 public:
 	// Constructors and destructors
-	Connection(int fd);
 	~Connection();
 
 	// Operators overload
@@ -21,7 +22,8 @@ public:
 	// Getters and setters
 
 	// Methods
-	void handle(int events);
+	static Connection*	create(Server& server, Listen& listenSock);
+	void				handle(int events);
 };
 
 #endif
