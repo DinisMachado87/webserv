@@ -57,12 +57,12 @@ private:
 	size_t	findCRLF(const std::string& s) const;
 	size_t	findChar(const std::string& s, char c, size_t start, size_t end) const;
 
-	std::string trim(const std::string& s) const;
-	RequestMethod parseMethod(const std::string& method) const;
-	bool isSupportedVersion(const std::string& version) const;
-	void splitTarget();
+	std::string		trim(const std::string& s) const;
+	RequestMethod	parseMethod(const std::string& method) const;
+	bool			isSupportedVersion(const std::string& version) const;
+	void			splitTarget();
 
-	void setError(int code, const std::string& message);
+	void			setError(int code, const std::string& message);
 };
 
 #endif

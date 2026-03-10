@@ -24,7 +24,9 @@ public:
 	std::string					version;
 	std::vector<HeaderField>	headers;
 	std::string					body;
+	int							contentLength;
 
+public:
 	HttpRequest() :
 		method(METHOD_UNKNOWN),
 		methodString(),
@@ -33,7 +35,8 @@ public:
 		queryString(),
 		version(),
 		headers(),
-		body() {}
+		body(),
+		contentLength(-1) {}
 
 	void clear()
 	{
@@ -45,6 +48,7 @@ public:
 		version.clear();
 		headers.clear();
 		body.clear();
+		contentLength = -1;
 	}
 
 	std::string getHeader(const std::string& key) const
@@ -62,11 +66,13 @@ public:
 	static std::string toLower(const std::string& s)
 	{
 		std::string out = s;
+
 		for (size_t i = 0; i < out.size(); ++i)
 		{
 			if (out[i] >= 'A' && out[i] <= 'Z')
 				out[i] = static_cast<char>(out[i] - 'A' + 'a');
 		}
+
 		return out;
 	}
 };

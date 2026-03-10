@@ -12,6 +12,7 @@
 #include <string>
 
 #include "HttpRequestParser.hpp"
+#include "Request.hpp"
 
 struct Client
 {
@@ -21,6 +22,8 @@ struct Client
 	size_t				outSent;
 	bool				shouldClose;
 	bool				keepAlive;
+	std::string			remoteAddr;
+	std::string			remoteHost;
 	HttpRequestParser	parser;
 
 	Client() :
@@ -30,15 +33,19 @@ struct Client
 		outSent(0),
 		shouldClose(false),
 		keepAlive(false),
+		remoteAddr(),
+		remoteHost(),
 		parser() {}
 
-	Client(int f) :
+	Client(int f, const std::string& addr, const std::string& host) :
 		fd(f),
 		in(),
 		out(),
 		outSent(0),
 		shouldClose(false),
 		keepAlive(false),
+		remoteAddr(addr),
+		remoteHost(host),
 		parser()
 	{
 		parser.setMaxBodySize(1024 * 1024);
@@ -115,11 +122,9 @@ static bool request_wants_keep_alive(const HttpRequest& req)
 {
 	std::string connection = to_lower(req.getHeader("Connection"));
 
-	/* HTTP/1.1 defaults to keep-alive unless Connection: close */
 	if (req.version == "HTTP/1.1")
 		return connection != "close";
 
-	/* HTTP/1.0 defaults to close unless Connection: keep-alive */
 	if (req.version == "HTTP/1.0")
 		return connection == "keep-alive";
 
@@ -162,7 +167,14 @@ static void accept_client(std::vector<pollfd>& fds,
 						  std::vector<Client>& clients)
 {
 	int listen_fd = fds[0].fd;
-	int cfd = ::accept(listen_fd, 0, 0);
+
+	sockaddr_in clientAddr;
+	socklen_t clientLen = sizeof(clientAddr);
+	std::memset(&clientAddr, 0, sizeof(clientAddr));
+
+	int cfd = ::accept(listen_fd,
+					   reinterpret_cast<sockaddr*>(&clientAddr),
+					   &clientLen);
 
 	if (cfd < 0)
 	{
@@ -170,16 +182,24 @@ static void accept_client(std::vector<pollfd>& fds,
 		return;
 	}
 
+	char ip[INET_ADDRSTRLEN];
+	std::memset(ip, 0, sizeof(ip));
+
+	if (!inet_ntop(AF_INET, &clientAddr.sin_addr, ip, sizeof(ip)))
+		std::strcpy(ip, "");
+
 	pollfd p;
 	p.fd = cfd;
 	p.events = POLLIN;
 	p.revents = 0;
 
 	fds.push_back(p);
-	clients.push_back(Client(cfd));
+	clients.push_back(Client(cfd, ip, ""));
 
-	std::cout << "Accepted client fd=" << cfd << std::endl;
+	std::cout << "Accepted client fd=" << cfd
+			  << " ip=" << ip << std::endl;
 }
+
 
 static const char* method_to_string(RequestMethod method)
 {
@@ -192,14 +212,27 @@ static const char* method_to_string(RequestMethod method)
 	return "UNKNOWN";
 }
 
-static void print_request_debug(const HttpRequest& req)
+static const char* request_method_to_string(requestMethod method)
 {
+	if (method == GET)
+		return "GET";
+	if (method == POST)
+		return "POST";
+	if (method == DELETE)
+		return "DELETE";
+	return "UNKNOWN";
+}
+
+static void print_http_request_debug(const HttpRequest& req)
+{
+	std::cout << "---- Parsed HttpRequest ----" << std::endl;
 	std::cout << "method enum:   [" << method_to_string(req.method) << "]" << std::endl;
 	std::cout << "method text:   [" << req.methodString << "]" << std::endl;
 	std::cout << "target:        [" << req.target << "]" << std::endl;
 	std::cout << "path:          [" << req.path << "]" << std::endl;
 	std::cout << "query string:  [" << req.queryString << "]" << std::endl;
 	std::cout << "version:       [" << req.version << "]" << std::endl;
+	std::cout << "contentLength: [" << req.contentLength << "]" << std::endl;
 
 	for (size_t i = 0; i < req.headers.size(); ++i)
 	{
@@ -213,6 +246,27 @@ static void print_request_debug(const HttpRequest& req)
 
 	if (!req.body.empty())
 		std::cout << "body:          [" << req.body << "]" << std::endl;
+}
+
+/* static void print_request_debug()
+{
+	std::cout << "---- Mapped Request ----" << std::endl;
+
+} */
+
+static void print_request_debug(const Request& req)
+{
+	const reqVariables& vars = req.getVariables();
+
+	std::cout << "method:        [" << request_method_to_string(vars.method) << "]" << std::endl;
+	std::cout << "contentLength: [" << vars.contentLength << "]" << std::endl;
+	std::cout << "requestPath:   [" << vars.requestPath << "]" << std::endl;
+	std::cout << "CONTENT_TYPE:  [" << vars.CONTENT_TYPE << "]" << std::endl;
+	std::cout << "QUERY_STRING:  [" << vars.QUERY_STRING << "]" << std::endl;
+	std::cout << "REMOTE_ADDR:   [" << vars.REMOTE_ADDR << "]" << std::endl;
+	std::cout << "REMOTE_HOST:   [" << vars.REMOTE_HOST << "]" << std::endl;
+	std::cout << "body:          [" << req.getBody() << "]" << std::endl;
+	std::cout << "clientFD:      [" << req.getClientFD() << "]" << std::endl;
 }
 
 static void process_request(std::vector<pollfd>& fds,
@@ -270,20 +324,24 @@ static void process_request(std::vector<pollfd>& fds,
 		return;
 	}
 
-	const HttpRequest& req = c.parser.getRequest();
+	const HttpRequest& parsed = c.parser.getRequest();
+	print_http_request_debug(parsed);
+
+	Location* loc = NULL;
+	Request req(loc, parsed, c.fd, c.remoteAddr, c.remoteHost);
 	print_request_debug(req);
 
-	bool keepAlive = request_wants_keep_alive(req);
+	bool keepAlive = request_wants_keep_alive(parsed);
 
 	const char* body = "<h1>Hello World!</h1>";
 
-	if (req.path == "/bye")
+	if (parsed.path == "/bye")
 		body = "<h1>Bye!</h1>";
-	else if (req.path == "/hello")
+	else if (parsed.path == "/hello")
 		body = "<h1>Hello!</h1>";
-	else if (req.method == METHOD_POST)
+	else if (parsed.method == METHOD_POST)
 		body = "<h1>POST received!</h1>";
-	else if (!req.queryString.empty())
+	else if (!parsed.queryString.empty())
 		body = "<h1>Query string received!</h1>";
 
 	queue_response(fds, clients, idx,
@@ -332,9 +390,6 @@ static void handle_client_write(std::vector<pollfd>& fds,
 			return;
 		}
 
-		/* Keep-alive path:
-		   reset parser, clear output state, go back to reading.
-		   If c.in already contains another request, parse it immediately. */
 		c.out.clear();
 		c.outSent = 0;
 		c.shouldClose = false;

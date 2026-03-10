@@ -6,7 +6,9 @@ HttpRequestParser::HttpRequestParser() :
 	_errorCode(0),
 	_errorMessage(),
 	_contentLength(0),
-	_maxBodySize(1024 * 1024) {}
+	_maxBodySize(1024 * 1024)
+{
+}
 
 HttpRequestParser::HttpRequestParser(const HttpRequestParser& other) :
 	_state(other._state),
@@ -14,7 +16,9 @@ HttpRequestParser::HttpRequestParser(const HttpRequestParser& other) :
 	_errorCode(other._errorCode),
 	_errorMessage(other._errorMessage),
 	_contentLength(other._contentLength),
-	_maxBodySize(other._maxBodySize) {}
+	_maxBodySize(other._maxBodySize)
+{
+}
 
 HttpRequestParser& HttpRequestParser::operator=(const HttpRequestParser& other)
 {
@@ -27,10 +31,13 @@ HttpRequestParser& HttpRequestParser::operator=(const HttpRequestParser& other)
 	_errorMessage = other._errorMessage;
 	_contentLength = other._contentLength;
 	_maxBodySize = other._maxBodySize;
+
 	return *this;
 }
 
-HttpRequestParser::~HttpRequestParser() {}
+HttpRequestParser::~HttpRequestParser()
+{
+}
 
 void HttpRequestParser::reset()
 {
@@ -39,11 +46,6 @@ void HttpRequestParser::reset()
 	_errorCode = 0;
 	_errorMessage.clear();
 	_contentLength = 0;
-}
-
-void HttpRequestParser::setMaxBodySize(size_t maxBodySize)
-{
-	_maxBodySize = maxBodySize;
 }
 
 const HttpRequest& HttpRequestParser::getRequest() const
@@ -64,6 +66,11 @@ const std::string& HttpRequestParser::getErrorMessage() const
 HttpRequestParser::State HttpRequestParser::getState() const
 {
 	return _state;
+}
+
+void HttpRequestParser::setMaxBodySize(size_t maxBodySize)
+{
+	_maxBodySize = maxBodySize;
 }
 
 void HttpRequestParser::setError(int code, const std::string& message)
@@ -261,14 +268,20 @@ HttpRequestParser::Result HttpRequestParser::parseHeaders(std::string& buffer)
 				setError(400, "Invalid Content-Length");
 				return PARSE_ERROR;
 			}
+
 			if (parsedLen > _maxBodySize)
 			{
 				setError(413, "Request body too large");
 				return PARSE_ERROR;
 			}
+
 			_contentLength = parsedLen;
+			_request.contentLength = static_cast<int>(parsedLen);
 		}
 	}
+
+	/* unreachable */
+	return NEED_MORE;
 }
 
 HttpRequestParser::Result HttpRequestParser::parseBody(std::string& buffer)
