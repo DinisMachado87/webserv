@@ -188,7 +188,11 @@ void event_loop(int listen_fd)
 		handle_events(fds, clients);
 	}
 }
-
+/*
+c++ -Wall -Wextra -Werror -std=c++98 \                
+        server_main.cpp Client.cpp ReadHandler.cpp WriteHandler.cpp \
+        HttpRequestParser.cpp Request.cpp \
+        -o server */
 int main()
 {
 	const int port = 6969;
