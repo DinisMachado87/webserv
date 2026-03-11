@@ -16,6 +16,7 @@ class HttpParser {
 
 private:
 	std::string _buffer;
+	std::string _fullMessage;
 
 public:
 	// Constructors and destructors
