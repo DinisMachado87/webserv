@@ -6,7 +6,9 @@
 #include <asm-generic/socket.h>
 #include <cerrno>
 #include <cstring>
+#include <iostream>
 #include <netinet/in.h>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <sys/epoll.h>
@@ -17,13 +19,14 @@
 
 using std::string;
 using std::runtime_error;
+using std::cout;
+using std::endl;
 
-runtime_error	Listening::handleFdError(int fdSock)
+runtime_error	Listening::handleFdError(const char *errMsg, int fdSock)
 {
 	if (0 < fdSock)
 		close(fdSock);
-	return runtime_error(
-		string("Error creating Listening Socket: ")
+	return runtime_error(string(errMsg)
 		+ strerror(errno));
 }
 
@@ -44,30 +47,43 @@ Listening* Listening::create(const Server& server, const Listen& listenSock)
 	};
 
 	int	fdSock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
+	if (OK <= fdSock)
+		cout << "Created listening socket with fd " << fdSock << "\n";
+	else throw handleFdError("Error creating listening socket: ", fdSock);
 
 	int enable = 1;
+	if (OK == setNonBlocking(fdSock)
+		&& OK == setsockopt(fdSock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)))
+		cout << "Set Listening Socket options" << "\n";
+	else throw handleFdError("Error setting Listening socket non blocking/reuseaddr: ", fdSock);
 
-	if (0 <= fdSock
-		&& OK == setNonBlocking(fdSock)
-		&& OK == setsockopt(fdSock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable))
-		&& OK == bind(fdSock, (struct sockaddr*)&addr, sizeof(addr))
-		&& OK == listen(fdSock, SOMAXCONN))
+	if (OK == bind(fdSock, (struct sockaddr*)&addr, sizeof(addr)))
+		cout << "Bind socket" << "\n";
+	else throw handleFdError("Error binding Listening Socket: ", fdSock);
+
+	if (OK == listen(fdSock, SOMAXCONN)) {
+		cout << "Socket " << fdSock
+			<< " started listening on Port " << listenSock.getPort()
+			<< " host " << listenSock.getHost() << "\n";
 		return new Listening(fdSock, server, addr);
-	throw handleFdError(fdSock);
+	} else throw handleFdError("Error starting to listen with socket ", fdSock);
 }
 
-Connection* Listening::handleIn() {
-	struct sockaddr_in	clientAddr;
+Connection* Listening::handleIn()
+{
+	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
 
 	int clientFd = accept(_fd, (sockaddr*)&clientAddr, &clientAddrLen);
-	if (OK <= clientFd)
+	if (OK > clientFd)
 		throw handleError("Error accepting client: ");
 
 	setNonBlocking(clientFd);
+	cout << "Accepted connection on Listening socket" << _fd
+		<< "New connection socket " << clientFd << endl;
 
 	return new Connection(clientFd, _server, clientAddr);
 }
 
-void Listening::handleOut() { }
+void Listening::handleOut() {}
 

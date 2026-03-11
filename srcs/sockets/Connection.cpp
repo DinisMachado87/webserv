@@ -4,6 +4,7 @@
 #include <asm-generic/socket.h>
 #include <cerrno>
 #include <cstring>
+#include <fstream>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <string>
@@ -12,6 +13,7 @@
 
 using std::runtime_error;
 using std::string;
+using std::ifstream;
 
 // Public constructors and destructors
 Connection::Connection(int fd, const Server& server, struct sockaddr_in serverAddr):
@@ -20,5 +22,12 @@ Connection::Connection(int fd, const Server& server, struct sockaddr_in serverAd
 Connection::~Connection() {}
 
 // Public Methods
-Connection*	Connection::handleIn() { return NULL; };
+Connection*	Connection::handleIn() {
+	char	buffer[CHUNK_SIZE + 1];
+	size_t	bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
+	write(1, buffer, bitesRead);
+	
+	return NULL;
+};
+
 void		Connection::handleOut() { };
