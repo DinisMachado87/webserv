@@ -1,9 +1,13 @@
+#include "Connection.hpp"
 #include "webServ.hpp"
 #include "Engine.hpp"
 #include "ASocket.hpp"
 #include "ConfParser.hpp"
 #include "Listening.hpp"
+#include <bits/types/error_t.h>
 #include <cerrno>
+#include <iostream>
+#include <ostream>
 #include <stdint.h>
 #include <cstring>
 #include <map>
@@ -18,7 +22,8 @@ using std::runtime_error;
 using std::map;
 using std::vector;
 using std::string;
-using std::pair;
+using std::cerr;
+using std::endl;
 
 // Public constructors and destructors
 Engine::Engine():
@@ -71,6 +76,7 @@ void	Engine::setEventTo(int epollFd, uint operation, uint eventType, int socketF
 void Engine::addSocket(ASocket* socket) {
 	if (!socket)
 		throw handleError("Error null socket");
+
 	int fd = socket->getFd();
 	if (socket && fd > 0) {
 		_sockets[fd] = socket;
@@ -109,8 +115,10 @@ void Engine::createSockets() {
 void Engine::pollLoop() {
 	struct	epoll_event events[MAX_EVENTS];
 	int		nfds = -1;
+	Connection *newConnection = NULL;
 
 	while (true) {
+		newConnection = NULL;
 		nfds = epoll_wait(_fdEpoll, events, MAX_EVENTS, TIMEOUT);
 		if (ERR == nfds) {
 			if (errno == EINTR)
@@ -118,23 +126,31 @@ void Engine::pollLoop() {
 			handleError("Epoll_wait error: ");
 		}
 
-		for (int i = 0; i < MAX_EVENTS; i++) {
-			ASocket* socket = static_cast<ASocket*>(events[i].data.ptr);
+		for (int i = 0; i < nfds; i++) {
+			ASocket*	socket = static_cast<ASocket*>(events[i].data.ptr);
+			uint32_t	ev = events[i].events;
 
-			switch (events[i].events) {
-				case (EPOLLERR | EPOLLHUP):
-					delete socket;
-				case EPOLLIN:
-					socket->handleIn();
-				case EPOLLOUT:
-					socket->handleOut();
+			if (ev & (EPOLLERR | EPOLLHUP)) {
+				delete socket;
+				continue;
 			}
+			if (ev & EPOLLIN) {
+				newConnection = socket->handleIn();
+				if (newConnection)
+					addSocket(newConnection);
+			}
+			if (ev & EPOLLOUT)
+				socket->handleOut();
 		}
 	}
 }
 
 void Engine::run(string& config) {
-	buildServers(config);
-	createSockets();
-	pollLoop();
+	try {
+		buildServers(config);
+		createSockets();
+		pollLoop();
+	} catch (error_t err) {
+		cerr << err << endl;
+	}
 }

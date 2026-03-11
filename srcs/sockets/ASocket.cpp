@@ -3,11 +3,13 @@
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
 using std::runtime_error;
 using std::string;
+using std::cout;
 
 // Public constructors and destructors
 ASocket::ASocket(int fd, const Server& server, struct sockaddr_in serverAddr):
@@ -34,5 +36,6 @@ int	ASocket::setNonBlocking(int fd) {
 	int flags = fcntl(fd, F_GETFD);
 	if (ERR == fcntl(fd, F_SETFD, flags | O_NONBLOCK))
 		throw handleError("Error setting client sock non-blocking: ");
+
 	return OK;
 }

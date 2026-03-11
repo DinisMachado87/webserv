@@ -7,6 +7,7 @@
 // EPOLL Macros
 #define MAX_EVENTS 1024
 #define TIMEOUT 1000
+#define CHUNK_SIZE 1000
 
 typedef unsigned int uint;
 typedef unsigned char uchar;

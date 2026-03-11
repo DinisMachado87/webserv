@@ -28,7 +28,7 @@ private:
 	Listening(const Listening& other);
 	Listening& operator=(const Listening& other);
 	// Error Handeling
-	static std::runtime_error	handleFdError(int fdSock);
+	static std::runtime_error	handleFdError(const char* errMsg, int fdSock);
 
 public:
 	// Constructors and destructors
