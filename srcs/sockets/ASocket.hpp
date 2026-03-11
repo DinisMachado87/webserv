@@ -22,10 +22,13 @@ protected:
 	int					_fd;
 	const Server&		_server;
 	struct sockaddr_in	_serverAddr;
+	//ParsingHttp _currentParser;
+	//Request* _request;
 	// Constructors and destructors
 	ASocket(int fd, const Server& server, struct sockaddr_in serverAddr);
 	// Error Handeling
 	static std::runtime_error	handleError(const std::string errMsg);
+	
 
 public:
 	// Constructors and destructors
