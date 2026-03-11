@@ -21,7 +21,7 @@ SRCS_MAIN		:= main.cpp
 SRCS_ENGINE		:= engine Engine.cpp
 SRCS_SERVER		:= server Server.cpp
 SRCS_SOCKET		:= sockets ASocket.cpp Listening.cpp Connection.cpp
-SRCS_PARSER		:= parser Token.cpp ConfParser.cpp Expect.cpp
+SRCS_PARSER		:= parser Token.cpp ConfParser.cpp Expect.cpp HttpParser.cpp
 SRCS_UTILS		:= utils StrView.cpp
 
 SRC_GROUPS		:= SRCS_ENGINE SRCS_SERVER SRCS_SOCKET SRCS_PARSER SRCS_UTILS

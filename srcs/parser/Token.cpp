@@ -32,7 +32,24 @@ std::runtime_error Token::parsingErr(const char* expected) const {
 }
 
 // Public Methods
-const unsigned char* Token::configDelimiters() {
+const unsigned char* Token::configDelimiters()
+{
+	static unsigned char isDelimiter[256] = {0};
+
+	isDelimiter[static_cast<unsigned char>(' ')]  = SPACE;
+	isDelimiter[static_cast<unsigned char>('\t')] = SPACE;
+	isDelimiter[static_cast<unsigned char>('\n')] = NEWLINE;
+	isDelimiter[static_cast<unsigned char>('#')]  = COMMENT;
+	isDelimiter[static_cast<unsigned char>('"')]  = QUOTE;
+	isDelimiter[static_cast<unsigned char>('{')]  = OPENBLOCK;
+	isDelimiter[static_cast<unsigned char>('}')]  = CLOSEBLOCK;
+	isDelimiter[static_cast<unsigned char>(';')]  = SEMICOLON;
+	isDelimiter[static_cast<unsigned char>('\\')] = EXCAPE;
+	isDelimiter[static_cast<unsigned char>('\0')] = ENDOFILE;
+
+	return isDelimiter;
+}
+/* const unsigned char* Token::configDelimiters() {
 	static unsigned char isDelimiter[256] = {0};
 	isDelimiter[' '] = SPACE;
 	isDelimiter['\t'] = SPACE;
@@ -45,7 +62,7 @@ const unsigned char* Token::configDelimiters() {
 	isDelimiter['\\'] = EXCAPE;
 	isDelimiter['\0'] = ENDOFILE;
 	return isDelimiter;
-}
+} */
 
 void Token::extractQuote(const char *str) {
 	str++;
