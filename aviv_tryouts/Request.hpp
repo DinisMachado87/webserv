@@ -33,6 +33,7 @@ public:
 		const std::string& remoteAddr, const std::string& remoteHost);
 	~Request(void);
 
+
 	const reqVariables&	getVariables() const;
 	const std::string&	getBody() const;
 	int					getClientFD() const;

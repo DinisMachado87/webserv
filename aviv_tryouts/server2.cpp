@@ -397,3 +397,7 @@ int main()
     return 0;
 }
 
+/* I get from Dinis the header as a string + a server
+    I will create a class that has a constructor that takes a server and a string.
+    
+ */
