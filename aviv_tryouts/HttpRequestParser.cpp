@@ -1,5 +1,17 @@
 #include "HttpRequestParser.hpp"
 
+/* ------------------------------------------------------------------
+   Default constructor
+
+   Initializes the parser in its starting state:
+   - waiting for the request line
+   - empty parsed request object
+   - no error
+   - no Content-Length seen yet
+   - default maximum body size = 1 MB
+
+  one parser object should belong to one client connection.
+------------------------------------------------------------------- */
 HttpRequestParser::HttpRequestParser() :
 	_state(STATE_REQUEST_LINE),
 	_request(),
@@ -10,6 +22,7 @@ HttpRequestParser::HttpRequestParser() :
 {
 }
 
+//   Copy constructor
 HttpRequestParser::HttpRequestParser(const HttpRequestParser& other) :
 	_state(other._state),
 	_request(other._request),
@@ -20,6 +33,7 @@ HttpRequestParser::HttpRequestParser(const HttpRequestParser& other) :
 {
 }
 
+//   Copy assignment operator
 HttpRequestParser& HttpRequestParser::operator=(const HttpRequestParser& other)
 {
 	if (this == &other)
@@ -39,6 +53,13 @@ HttpRequestParser::~HttpRequestParser()
 {
 }
 
+/* ------------------------------------------------------------------
+   reset()
+   Resets the parser so it can start parsing a new HTTP request.
+   This is used after:
+   - a full request has been successfully handled, or
+   - the connection wants to continue with keep-alive
+------------------------------------------------------------------- */
 void HttpRequestParser::reset()
 {
 	_state = STATE_REQUEST_LINE;
@@ -58,6 +79,7 @@ int HttpRequestParser::getErrorCode() const
 	return _errorCode;
 }
 
+
 const std::string& HttpRequestParser::getErrorMessage() const
 {
 	return _errorMessage;
@@ -68,11 +90,24 @@ HttpRequestParser::State HttpRequestParser::getState() const
 	return _state;
 }
 
+/* ------------------------------------------------------------------
+   setMaxBodySize()
+   Sets the maximum allowed request body size.
+   This protects the server from huge uploads or malicious requests.
+   If Content-Length exceeds this value, parsing fails with 413.
+------------------------------------------------------------------- */
 void HttpRequestParser::setMaxBodySize(size_t maxBodySize)
 {
 	_maxBodySize = maxBodySize;
 }
 
+/* ------------------------------------------------------------------
+   setError()
+   Moves the parser into STATE_ERROR and stores both:
+   - an error code
+   - an explanatory message
+   This centralizes error handling so parse functions can fail cleanly.
+------------------------------------------------------------------- */
 void HttpRequestParser::setError(int code, const std::string& message)
 {
 	_state = STATE_ERROR;
@@ -80,6 +115,18 @@ void HttpRequestParser::setError(int code, const std::string& message)
 	_errorMessage = message;
 }
 
+/* ------------------------------------------------------------------
+   findCRLF()
+   Searches for the first "\r\n" sequence in a string.
+
+   HTTP uses CRLF as the line ending, so this helper is used to find:
+   - the end of the request line
+   - the end of each header line
+
+   Returns:
+   - index of '\r' if found
+   - std::string::npos otherwise
+------------------------------------------------------------------- */
 size_t HttpRequestParser::findCRLF(const std::string& s) const
 {
 	for (size_t i = 0; i + 1 < s.size(); ++i)
@@ -90,6 +137,20 @@ size_t HttpRequestParser::findCRLF(const std::string& s) const
 	return std::string::npos;
 }
 
+/* ------------------------------------------------------------------
+   findChar()
+
+   Searches for a single character inside a substring range:
+   [start, end)
+
+   Used for:
+   - finding spaces in the request line
+   - finding ':' in header lines
+
+   Returns:
+   - index of the character if found
+   - std::string::npos otherwise
+------------------------------------------------------------------- */
 size_t HttpRequestParser::findChar(const std::string& s, char c, size_t start, size_t end) const
 {
 	for (size_t i = start; i < end; ++i)
@@ -100,6 +161,16 @@ size_t HttpRequestParser::findChar(const std::string& s, char c, size_t start, s
 	return std::string::npos;
 }
 
+/* ------------------------------------------------------------------
+   trim()
+
+   Removes leading and trailing spaces/tabs from a string.
+
+   Used mainly for header parsing so that:
+   "Content-Type:   text/html   "
+   becomes:
+   "text/html"
+------------------------------------------------------------------- */
 std::string HttpRequestParser::trim(const std::string& s) const
 {
 	size_t start = 0;
@@ -114,14 +185,38 @@ std::string HttpRequestParser::trim(const std::string& s) const
 	return s.substr(start, end - start);
 }
 
+/* ------------------------------------------------------------------
+   parseMethod()
+
+   Converts the method text from the request line into the internal enum.
+
+   Supported methods:
+   - GET
+   - POST
+   - DELETE
+
+   Any other method becomes METHOD_UNKNOWN and will later trigger 405.
+------------------------------------------------------------------- */
 RequestMethod HttpRequestParser::parseMethod(const std::string& method) const
 {
-	if (method == "GET")
-		return METHOD_GET;
-	if (method == "POST")
-		return METHOD_POST;
-	if (method == "DELETE")
-		return METHOD_DELETE;
+	switch (method[0])
+	{
+		case 'G':
+			if (method == "GET")
+				return METHOD_GET;
+			break;
+
+		case 'P':
+			if (method == "POST")
+				return METHOD_POST;
+			break;
+
+		case 'D':
+			if (method == "DELETE")
+				return METHOD_DELETE;
+			break;
+	}
+
 	return METHOD_UNKNOWN;
 }
 
@@ -130,6 +225,20 @@ bool HttpRequestParser::isSupportedVersion(const std::string& version) const
 	return (version == "HTTP/1.1" || version == "HTTP/1.0");
 }
 
+/* ------------------------------------------------------------------
+   parseContentLength()
+
+   Parses the Content-Length header value into a numeric size_t.
+
+   Rules:
+   - empty string is invalid
+   - only decimal digits are accepted
+   - no signs, spaces, or other characters are accepted
+
+   Returns:
+   - true on success, with 'out' filled
+   - false on invalid input
+------------------------------------------------------------------- */
 bool HttpRequestParser::parseContentLength(const std::string& value, size_t& out) const
 {
 	if (value.empty())
@@ -146,6 +255,23 @@ bool HttpRequestParser::parseContentLength(const std::string& value, size_t& out
 	return true;
 }
 
+/* ------------------------------------------------------------------
+   splitTarget()
+
+   Splits the raw request target into:
+   - path
+   - query string
+
+   Example:
+   target = "/search?q=test&x=1"
+
+   becomes:
+   path        = "/search"
+   queryString = "q=test&x=1"
+
+   If no '?' exists, the whole target becomes the path and
+   queryString is cleared.
+------------------------------------------------------------------- */
 void HttpRequestParser::splitTarget()
 {
 	size_t q = _request.target.find('?');
@@ -161,6 +287,29 @@ void HttpRequestParser::splitTarget()
 	}
 }
 
+/* ------------------------------------------------------------------
+   parseRequestLine()
+
+   Parses the first line of the HTTP request, for example:
+
+   "GET /hello HTTP/1.1\r\n"
+
+   Steps:
+   1. wait until a full line ending in CRLF exists
+   2. remove that line from the buffer
+   3. split it into 3 parts:
+      - method
+      - target
+      - version
+   4. validate method and version
+   5. split target into path + query string
+   6. move parser state to STATE_HEADERS
+
+   Returns:
+   - NEED_MORE if the line is incomplete
+   - PARSE_ERROR on malformed request line
+   - NEED_MORE again after successful parse, because next state is HEADERS
+------------------------------------------------------------------- */
 HttpRequestParser::Result HttpRequestParser::parseRequestLine(std::string& buffer)
 {
 	size_t lineEnd = findCRLF(buffer);
@@ -218,6 +367,32 @@ HttpRequestParser::Result HttpRequestParser::parseRequestLine(std::string& buffe
 	return NEED_MORE;
 }
 
+/* ------------------------------------------------------------------
+   parseHeaders()
+
+   Parses header lines one by one until it reaches the empty line that
+   marks the end of headers.
+
+   Example header:
+   "Host: localhost\r\n"
+
+   Steps:
+   1. repeatedly look for CRLF
+   2. if line is empty, headers are done
+   3. otherwise split line on ':'
+   4. trim header name and value
+   5. store header in _request.headers
+   6. if header is Content-Length, parse and validate it
+
+   When headers end:
+   - if Content-Length > 0, go to STATE_BODY
+   - otherwise go directly to STATE_DONE
+
+   Returns:
+   - NEED_MORE if headers are incomplete
+   - PARSE_DONE if full request is complete with no body
+   - PARSE_ERROR if a header is malformed
+------------------------------------------------------------------- */
 HttpRequestParser::Result HttpRequestParser::parseHeaders(std::string& buffer)
 {
 	while (1)
@@ -284,6 +459,21 @@ HttpRequestParser::Result HttpRequestParser::parseHeaders(std::string& buffer)
 	return NEED_MORE;
 }
 
+/* ------------------------------------------------------------------
+   parseBody()
+
+   Parses the request body when Content-Length was present and > 0.
+
+   Steps:
+   1. wait until the buffer contains at least _contentLength bytes
+   2. copy exactly that many bytes into _request.body
+   3. erase consumed body bytes from the buffer
+   4. move to STATE_DONE
+
+   Returns:
+   - NEED_MORE if body is still incomplete
+   - PARSE_DONE when the full body has been read
+------------------------------------------------------------------- */
 HttpRequestParser::Result HttpRequestParser::parseBody(std::string& buffer)
 {
 	if (buffer.size() < _contentLength)
@@ -296,6 +486,32 @@ HttpRequestParser::Result HttpRequestParser::parseBody(std::string& buffer)
 	return PARSE_DONE;
 }
 
+/* ------------------------------------------------------------------
+   feed()
+
+   This is the main driver of the parser state machine.
+
+   It examines the current state and delegates to the correct parsing
+   function:
+   - request line
+   - headers
+   - body
+
+   Because socket data may arrive in pieces, feed() can be called many
+   times on the same client buffer.
+
+   Important behavior:
+   - it consumes bytes from 'buffer' as parsing succeeds
+   - it stops when:
+     * more bytes are needed
+     * parsing completed
+     * a parse error occurred
+
+   Returns:
+   - NEED_MORE  : parser needs more input bytes
+   - PARSE_DONE : one full request has been parsed
+   - PARSE_ERROR: malformed request / unsupported method / etc.
+------------------------------------------------------------------- */
 HttpRequestParser::Result HttpRequestParser::feed(std::string& buffer)
 {
 	while (1)

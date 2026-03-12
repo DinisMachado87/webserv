@@ -30,12 +30,12 @@ private:
 	HttpParser& operator=(const HttpParser& other);
 
 	//private methods:
-	size_t findCRLF(const std::string& s) const;
+
 
 
 public:
 	// Methods
-	Request* parse(char *rawBuffer);
+	Request* parse(char *rawBuffer, size_t bitesRead);
 };
 
 #endif
