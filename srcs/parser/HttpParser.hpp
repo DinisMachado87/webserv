@@ -17,6 +17,8 @@ class HttpParser {
 private:
 	std::string _buffer;
 	std::string _fullMessage;
+	reqVariables	_reqVariables;
+	Request* _result;
 
 public:
 	// Constructors and destructors
@@ -30,12 +32,15 @@ private:
 	HttpParser& operator=(const HttpParser& other);
 
 	//private methods:
+	bool firstLineParse(std::string firstLine);
+	bool headerParse(std::string headerLine);
+	std::string trimSpaces(const std::string& s) const;
 
 
 
 public:
 	// Methods
-	Request* parse(char *rawBuffer, size_t bitesRead);
+	Request* parse(char *rawBuffer, size_t bitesRead, int clientFD);
 };
 
 #endif

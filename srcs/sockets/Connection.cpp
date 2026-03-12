@@ -27,7 +27,9 @@ Connection*	Connection::handleIn() {
 	size_t	bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
 
 	if (bitesRead > 0)
-		_request = _parser.parse(buffer, bitesRead);
+		_request = _parser.parse(buffer, bitesRead, _fd);
+	if (_request)
+		_request->respond("Hi from Request");
 	
 	return NULL;
 };

@@ -171,7 +171,7 @@ size_t HttpRequestParser::findChar(const std::string& s, char c, size_t start, s
    becomes:
    "text/html"
 ------------------------------------------------------------------- */
-std::string HttpRequestParser::trim(const std::string& s) const
+std::string HttpRequestParser::trimSpaces(const std::string& s) const
 {
 	size_t start = 0;
 	size_t end = s.size();

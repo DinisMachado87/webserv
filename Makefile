@@ -20,11 +20,12 @@ SRCS_MAIN		:= main.cpp
 # Sources modules (first word is the directory)
 SRCS_ENGINE		:= engine Engine.cpp
 SRCS_SERVER		:= server Server.cpp
+SRCS_REQUEST		:= requests Request.cpp
 SRCS_SOCKET		:= sockets ASocket.cpp Listening.cpp Connection.cpp
 SRCS_PARSER		:= parser Token.cpp ConfParser.cpp Expect.cpp HttpParser.cpp
 SRCS_UTILS		:= utils StrView.cpp
 
-SRC_GROUPS		:= SRCS_ENGINE SRCS_SERVER SRCS_SOCKET SRCS_PARSER SRCS_UTILS
+SRC_GROUPS		:= SRCS_ENGINE SRCS_SERVER SRCS_REQUEST SRCS_SOCKET SRCS_PARSER SRCS_UTILS
 
 define make_paths
 $(addprefix $(word 1,$(1))/,$(wordlist 2,$(words $(1)),$(1)))
