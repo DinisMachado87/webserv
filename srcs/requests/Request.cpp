@@ -43,9 +43,7 @@ void Request::respond(std::string message)
 	std::string response =
 		"HTTP/1.1 200 OK\r\n"
 		"Content-Type: text/html\r\n"
-		"Content-Length: " + contentLength + "\r\n"
-		"\r\n" +
-		body;
+		"Content-Length: " + contentLength + "\r\n\r\n" + body;
 
 	send(_clientFD, response.c_str(), response.size(), 0);
 }
