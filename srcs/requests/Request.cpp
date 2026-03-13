@@ -2,38 +2,37 @@
 #include <sys/socket.h>
 #include <sstream>
 
-/* Basic constructor with defaults */
-/* Request::Request(Location* loc) :
-	_body(),
-	_variables(),
-	_location(loc),
-	_clientFD(-1)
-{
-	_variables.method = "GET";
-	_variables.contentLength = -1;
-	_variables.requestPath.clear();
-	_variables.CONTENT_TYPE.clear();
-	_variables.QUERY_STRING.clear();
-	_variables.REMOTE_ADDR.clear();
-	_variables.REMOTE_HOST.clear();
-} */
-
-Request::Request(reqVariables vars) :
-	_body(),
-	_variables(vars),
-	_location(NULL),
-	_clientFD(vars.clientFD)
+Request::Request(reqVariables *vars) :
+	vars(vars),
+	_location(NULL)
 {
 }
 
 Request::~Request(void)
 {
+	delete vars;
 }
-
-
 
 void Request::respond(std::string message)
 {
+	std::string statusLine = "HTTP/1.1 200 OK\r\n";
+
+	if (vars->type == REQ_ERROR)
+	{
+		std::ostringstream err;
+		err << vars->errorCode << " " << vars->errorMessage;
+		message = err.str();
+
+		if (vars->errorCode == 400)
+			statusLine = "HTTP/1.1 400 Bad Request\r\n";
+		else if (vars->errorCode == 405)
+			statusLine = "HTTP/1.1 405 Method Not Allowed\r\n";
+		else if (vars->errorCode == 505)
+			statusLine = "HTTP/1.1 505 HTTP Version Not Supported\r\n";
+		else
+			statusLine = "HTTP/1.1 500 Internal Server Error\r\n";
+	}
+
 	std::string body = "<html><body><h1>" + message + "</h1></body></html>";
 
 	std::ostringstream oss;
@@ -41,29 +40,25 @@ void Request::respond(std::string message)
 	std::string contentLength = oss.str();
 
 	std::string response =
-		"HTTP/1.1 200 OK\r\n"
+		statusLine +
 		"Content-Type: text/html\r\n"
-		"Content-Length: " + contentLength + "\r\n\r\n" + body;
+		"Content-Length: " + contentLength + "\r\n"
+		"Connection: close\r\n"
+		"\r\n" +
+		body;
 
-	send(_clientFD, response.c_str(), response.size(), 0);
+	send(vars->clientFD, response.c_str(), response.size(), 0);
 }
 
 const reqVariables& Request::getVariables() const
 {
-	return _variables;
-}
-
-const std::string& Request::getBody() const
-{
-	return _body;
-}
-
-int Request::getClientFD() const
-{
-	return _clientFD;
+	return *vars;
 }
 
 Location* Request::getLocation() const
 {
 	return _location;
 }
+
+
+

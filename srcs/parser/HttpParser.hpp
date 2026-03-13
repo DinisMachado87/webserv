@@ -3,7 +3,7 @@
 
 #include "StrView.hpp"
 #include "webServ.hpp"
-#include "/home/akosloff/Projects/webserv/webserv/srcs/requests/Request.hpp"
+#include "../requests/Request.hpp"
 #include <cstddef>
 #include <stdexcept>
 #include <string>
@@ -11,35 +11,30 @@
 #include <vector>
 #include <iostream>
 
-class HttpParser {
-
-
+class HttpParser
+{
 private:
-	std::string _buffer;
-	std::string _fullMessage;
+	std::string		_buffer;
+	std::string		_fullMessage;
 	reqVariables	_reqVariables;
-	Request* _result;
-
-public:
-	// Constructors and destructors
-	HttpParser();
-	~HttpParser();
-
 
 private:
 	//explicit disables
 	HttpParser(const HttpParser& other);
 	HttpParser& operator=(const HttpParser& other);
 
-	//private methods:
-	bool firstLineParse(std::string firstLine);
-	bool headerParse(std::string headerLine);
-	std::string trimSpaces(const std::string& s) const;
-
-
+	//private methods
+	bool		firstLineParse(std::string firstLine);
+	bool		headerParse(std::string headerLine);
+	std::string	trimSpaces(const std::string& s) const;
+	Request*	makeErrorRequest(void);
 
 public:
-	// Methods
+	// Constructors and destructors
+	HttpParser();
+	~HttpParser();
+
+	//pulic methods
 	Request* parse(char *rawBuffer, size_t bitesRead, int clientFD);
 };
 
