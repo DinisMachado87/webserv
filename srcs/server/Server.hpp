@@ -22,11 +22,12 @@ struct Overrides {
 	Span<StrView>					_index;
 	size_t							_clientMaxBody;
 	// Getters
-	size_t			getClientMaxBody() const;
-	const char*		findErrorFile(uint errorCode) const;
-	bool			isAutoindexed() const;
-	const char*		getRoot() const;
+	size_t					getClientMaxBody() const;
+	const char*				findErrorFile(uint errorCode) const;
+	bool					isAutoindexed() const;
+	const char*				getRoot() const;
 	const Span<StrView>&	getIndex() const;
+	size_t					getErrorMapSize() const;
 };
 
 struct Location {
@@ -58,16 +59,19 @@ struct Location {
 	bool			_uploadEnable;
 	uchar   		_allowedMethods;
 	// Getters Location Vars
-	uchar		isAllowedMethod(uchar methodToCheck) const;
-	const char*	findCgiPath(StrView& extention) const;
-	const char*	findCgiPath(const char* extention) const;
-	const char*	getPath() const;
-	const char*	getUploadPath() const;
-	const char*	getRewriteNewPath() const;
-	const char*	getRewriteOldPath() const;
-	const char*	getReturnPath() const;
-	uint		getReturncode() const;
-	bool		getUploadEnabled() const;
+	uchar					isAllowedMethod(uchar methodToCheck) const;
+	const char*				findCgiPath(StrView& extention) const;
+	const char*				findCgiPath(const char* extention) const;
+	const char*				getPath() const;
+	const char*				getUploadPath() const;
+	const char*				getRewriteNewPath() const;
+	const char*				getRewriteOldPath() const;
+	const char*				getReturnPath() const;
+	uint					getReturncode() const;
+	bool					getUploadEnabled() const;
+	const Span<StrView>&	getCgiExtensions() const;
+	const Span<StrView>&	getCgiPath() const;
+	const Overrides&		getOverrides() const;
 };
 
 struct Listen {

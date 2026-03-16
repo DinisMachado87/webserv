@@ -145,8 +145,8 @@ void	ConfParser::parseLocation() {
 				_token.consolidateBuffer(_newServer->_strBuf);
 				_newServer->_locations.push_back(_newLocation);
 				_newLocation = Location(_newServer->_strBuf,
-										_newServer->_strvVecBuf,
-										&_newServer->_defaults);
+							_newServer->_strvVecBuf,
+							&_newServer->_defaults);
 				return;
 			case Token::WORD:
 				parseLocationParam();
@@ -157,24 +157,25 @@ void	ConfParser::parseLocation() {
 	}
 }
 
-void	ConfParser::parseServerLine() {
+void ConfParser::parseServerLine() {
 	if (_token.compare("listen")) {
-		int num1 = _expect.nextInteger();
-		
+		_token.getNextOfType(Token::WORD, "listen address");
+
 		Listen listen;
-		uchar types[] = {Token::WORD, Token::SEMICOLON};
-		
-		switch (_token.getNextOfTypes(types, 2, "port or ';'")) {
-			case Token::SEMICOLON:
-				listen._host = inet_addr("127.0.0.1");
-				listen._port = num1;
-				break;
-			case Token::WORD:
-				listen._host = num1;
-				listen._port = _expect.integer();
-				_token.getNextOfType(Token::SEMICOLON, "';'");
-				break;
+		string portStr = _token.getString();
+		string ipStr = "*";
+
+		// in case ip:port extracts ip
+		size_t colonPos = portStr.find(':');
+		if (colonPos != string::npos) {
+			ipStr = portStr.substr(0, colonPos);
+			portStr = portStr.substr(colonPos + 1);
 		}
+
+		listen._host = _expect.ip(ipStr);
+		listen._port = _expect.port(portStr);
+
+		_token.getNextOfType(Token::SEMICOLON, "';'");
 		_newServer->_listen.push_back(listen);
 	}
 	else if (!parseOverrides(_newServer->_defaults))
@@ -183,23 +184,21 @@ void	ConfParser::parseServerLine() {
 
 void	ConfParser::nextServer() {
 	while (1) {
-		_token.next();
-		_curType = _token.getType();
-
-		if (Token::WORD == _curType) {
-			if (_token.compare("location"))
-				parseLocation();
-			else
-				parseServerLine();
+		switch (_token.next()) {
+			case Token::WORD:
+				if (_token.compare("location"))
+					parseLocation();
+				else
+					parseServerLine();
+				continue;
+			case Token::CLOSEBLOCK:
+				_token.consolidateBuffer(_newServer->_strBuf);
+				_servers.push_back(_newServer);
+				_newServer = new Server();
+				return;
+			default:
+				throw parsingErr("Unexpected token");
 		}
-		else if (Token::CLOSEBLOCK == _curType) {
-			_token.consolidateBuffer(_newServer->_strBuf);
-			_servers.push_back(_newServer);
-			_newServer = new Server();
-			return;
-		}
-		else
-			throw parsingErr("Unexpected token");
 	}
 }
 
