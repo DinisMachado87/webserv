@@ -80,7 +80,7 @@ Connection* Listening::handleIn()
 
 	setNonBlocking(clientFd);
 	cout << "Accepted connection on Listening socket" << _fd
-		<< "New connection socket " << clientFd << endl;
+		<< " New connection socket " << clientFd << endl;
 
 	return new Connection(clientFd, _server, clientAddr);
 }

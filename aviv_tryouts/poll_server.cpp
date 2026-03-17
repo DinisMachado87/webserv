@@ -1,3 +1,20 @@
+/* 
+parser initated inside handleIn()
+returns a request class (it can be either a healthy response or an error respone)
+
+inside engine class there is Engine::pollLoop() this loops between the sockets
+
+when Asocket class, it has _currentParser, created in the constructor.
+each socket has its own ParserHttp instance.
+
+inside Engine::pollLoop() we call connection class function handleIn()
+
+inside handleIn()
+we call ParserHttp.parse() method that takes the current buffer and the server.
+ParserHttp will have to collect the buffers until CLRF, then return a pointer to a Request class (or derived class)
+if CLRF doesn't exist yet we return NULL. but ParserHttp class has to keep the current state of buffer for next read.
+
+ */
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

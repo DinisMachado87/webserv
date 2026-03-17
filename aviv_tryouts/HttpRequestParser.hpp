@@ -8,6 +8,7 @@
 class HttpRequestParser
 {
 public:
+/*A state machine is a program that processes input step by step and changes its behavior depending on its current state.*/
 	enum State
 	{
 		STATE_REQUEST_LINE,
