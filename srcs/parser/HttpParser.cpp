@@ -313,15 +313,19 @@ bool HttpParser::isValidHostValue(const std::string& s) const
 /* Split request-target into path + query. */
 Request* HttpParser::parseRequestTarget(const std::string& target)
 {
-	size_t qmark;
-
 	if (target.empty())
 		return makeErrorRequest(400, "Empty request target", REQ_ERROR);
-
 	if (target[0] != '/')
 		return makeErrorRequest(400, "Unsupported request target form", REQ_ERROR);
 
-	qmark = target.find('?');
+	for (size_t index = 0; index < target.size(); index++)
+	{
+		unsigned char c = static_cast<unsigned char>(target[index]);
+		if (c < 32 || c == 127 || c == ' ')
+			return makeErrorRequest(400, "Invalid request target", REQ_ERROR);
+	}
+
+	size_t qmark = target.find('?');
 	if (qmark == std::string::npos)
 	{
 		_reqVariables.requestPath = target;

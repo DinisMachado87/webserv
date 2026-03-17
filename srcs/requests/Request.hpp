@@ -26,8 +26,9 @@ enum e_request_type
 							//RFC2616
 typedef	struct	reqVariables {		//{defaults}
 std::string				method;			//GET / POST / PUT / DELETE etc
-bool hasContentLength;
-long					contentLength;	//length of message body - taken from header or manually calculated if chunked {-1}
+bool 					hasContentLength;
+bool 					clearBufferOnError; 
+size_t					contentLength;	//length of message body - taken from header or manually calculated if chunked {-1}
 int						clientFD;
 int						errorCode; //400 or 405 or etc
 std::string				errorMessage; //actual message to print
@@ -67,6 +68,16 @@ private:
 	Request(void);
 	Request(const Request &other);
 	Request &	operator=(const Request &other);
+
+	void handleGet();
+	void handlePost();
+	void handleDelete();
+	void handleError();
+
+	void sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader);
+	void sendSimpleErrorRespone(int code, const std::string& reason, const std::string& message);
+	void	sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);
+
 };
 
 

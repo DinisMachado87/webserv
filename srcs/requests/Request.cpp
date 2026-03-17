@@ -15,40 +15,94 @@ Request::~Request(void)
 
 void Request::respond()
 {
-	std::string statusLine = "HTTP/1.1 200 OK\r\n";
-	std::string message = "Hi from request";
-
-	if (vars->type == REQ_ERROR)
+	switch (vars->type)
 	{
-		std::ostringstream err;
-		err << vars->errorCode << " " << vars->errorMessage;
-		message = err.str();
-
-		if (vars->errorCode == 400)
-			statusLine = "HTTP/1.1 400 Bad Request\r\n";
-		else if (vars->errorCode == 405)
-			statusLine = "HTTP/1.1 405 Method Not Allowed\r\n";
-		else if (vars->errorCode == 505)
-			statusLine = "HTTP/1.1 505 HTTP Version Not Supported\r\n";
-		else
-			statusLine = "HTTP/1.1 500 Internal Server Error\r\n";
+		case REQ_GET:
+			return handleGet();
+		case REQ_POST:
+			return handlePost();
+		case REQ_DELETE:
+			return handleDelete();
+		case REQ_ERROR:
+			return handleError();
+		default:
+			return sendSimpleErrorResponse(500, "Internal Server Error", "Unknown request type");
 	}
+}
 
-	std::string body = "<html><body><h1>" + message + "</h1></body></html>";
-
+void Request::sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader)
+{
 	std::ostringstream oss;
 	oss << body.size();
 	std::string contentLength = oss.str();
 
 	std::string response =
 		statusLine +
-		"Content-Type: text/html\r\n"
-		"Content-Length: " + contentLength + "\r\n"
-		"Connection: close\r\n"
+		"Content-Type: " + contentType + "\r\n" +
+		"Content-Length: " + contentLength + "\r\n" +
+		"Connection: " + connectionHeader + "\r\n" +
 		"\r\n" +
 		body;
 
 	send(vars->clientFD, response.c_str(), response.size(), 0);
+}
+
+void Request::sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message)
+{
+	std::ostringstream title;
+	title << code << " " << reason;
+
+	std::string body = "<html><body><h1>" + title.str() +
+		"</h1><p>" + message + "</p></body></html>";
+
+	sendResponse("HTTP/1.1 " + title.str() + "\r\n", body, "text/html", "close");
+}
+
+
+void Request::handleGet()
+{
+	sendResponse("HTTP/1.1 200 OK\r\n",
+		"<html><body><h1>GET request received</h1></body></html>",
+		"text/html",
+		"close");
+}
+
+void Request::handlePost()
+{
+	sendResponse("HTTP/1.1 200 OK\r\n",
+		"<html><body><h1>POST request received</h1></body></html>",
+		"text/html",
+		"close");
+}
+
+void Request::handleDelete()
+{
+	sendResponse("HTTP/1.1 200 OK\r\n",
+		"<html><body><h1>DELETE request received</h1></body></html>",
+		"text/html",
+		"close");
+}
+
+
+void Request::handleError()
+{
+	std::string reason = getReasonPhrase(vars->errorCode);
+	sendSimpleErrorResponse(vars->errorCode, reason, vars->errorMessage);
+}
+
+static std::string getReasonPhrase(int code)
+{
+	switch (code)
+	{
+		case 400: return "Bad Request";
+		case 405: return "Method Not Allowed";
+		case 411: return "Length Required";
+		case 413: return "Content Too Large";
+		case 431: return "Request Header Fields Too Large";
+		case 501: return "Not Implemented";
+		case 505: return "HTTP Version Not Supported";
+		default:  return "Internal Server Error";
+	}
 }
 
 const reqVariables& Request::getVariables() const
