@@ -24,10 +24,10 @@ private:
 	HttpParser& operator=(const HttpParser& other);
 
 	//private methods
-	bool		firstLineParse(std::string firstLine);
-	bool		headerParse(std::string headerLine);
+	Request*	firstLineParse(std::string firstLine);
+	Request*	headerParse(std::string headerLine);
 	std::string	trimSpaces(const std::string& s) const;
-	Request*	makeErrorRequest(void);
+	Request*	makeErrorRequest(int Code, std::string Message, e_response_type Type);
 
 public:
 	// Constructors and destructors

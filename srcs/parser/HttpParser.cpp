@@ -7,8 +7,12 @@ HttpParser::HttpParser()
 
 HttpParser::~HttpParser() {}
 
-Request* HttpParser::makeErrorRequest(void)
+/* here I should set an error code, without it this function is useless */
+Request* HttpParser::makeErrorRequest(int Code, std::string Message, e_response_type Type)
 {
+	_reqVariables.errorCode = Code;
+	_reqVariables.errorMessage = Message;
+		_reqVariables.type = Type;
 	reqVariables *currentVars = new reqVariables;
 	*currentVars = _reqVariables;
 	return new Request(currentVars);
@@ -16,12 +20,17 @@ Request* HttpParser::makeErrorRequest(void)
 
 Request* HttpParser::parse(char *rawBuffer, size_t bitesRead, int clientFD)
 {
+	Request* errorReq = NULL;
 	_buffer.append(rawBuffer, bitesRead);
 
+	/* if there is no CRLF we return to the connection class function handleIn() 
+	maybe here to use end() will save time of iterating the whole string
+	what happens if inside the buffer I got there is 2 reuqeusts? same problems as getNextLine*/
 	size_t reqEnd = _buffer.find("\r\n\r\n");
 	if (reqEnd == std::string::npos)
 		return NULL;
 
+	/* maybe this intializing code in the contructor */
 	_reqVariables = reqVariables();
 	_reqVariables.contentLength = -1;
 	_reqVariables.clientFD = clientFD;
@@ -32,38 +41,29 @@ Request* HttpParser::parse(char *rawBuffer, size_t bitesRead, int clientFD)
 	_fullMessage = _buffer.substr(0, reqEnd + 4);
 	_buffer.erase(0, reqEnd + 4);
 
+	/* wouldn't this find the first "\r\n" of the CLRF? */
 	size_t lineEnd = _fullMessage.find("\r\n");
 	if (lineEnd == std::string::npos)
-	{
-		_reqVariables.errorCode = 400;
-		_reqVariables.errorMessage = "Bad request line";
-		_reqVariables.type = REQ_ERROR;
-		return makeErrorRequest();
-	}
+		return makeErrorRequest(400, "Bad request line", REQ_ERROR);
 
 	std::string firstLine = _fullMessage.substr(0, lineEnd);
-	if (!firstLineParse(firstLine))
-		return makeErrorRequest();
+	if (errorReq = firstLineParse(firstLine))
+		return errorReq;
 
 	size_t current = lineEnd + 2;
-
+	/* this while loops over all the headers */
 	while (current < _fullMessage.size())
 	{
 		size_t next = _fullMessage.find("\r\n", current);
 		if (next == std::string::npos)
-		{
-			_reqVariables.errorCode = 400;
-			_reqVariables.errorMessage = "Bad header line";
-			_reqVariables.type = REQ_ERROR;
-			return makeErrorRequest();
-		}
+			return makeErrorRequest(400, "Bad header line", REQ_ERROR);
 
 		if (next == current)
 			break;
 
 		std::string headerLine = _fullMessage.substr(current, next - current);
-		if (!headerParse(headerLine))
-			return makeErrorRequest();
+		if (errorReq = headerParse(headerLine))
+			return errorReq;
 
 		current = next + 2;
 	}
@@ -73,61 +73,36 @@ Request* HttpParser::parse(char *rawBuffer, size_t bitesRead, int clientFD)
 	return new Request(currentVars);
 }
 
-bool HttpParser::headerParse(std::string headerLine)
+Request* HttpParser::headerParse(std::string headerLine)
 {
 	size_t firstColon = headerLine.find(':');
 	if (firstColon == std::string::npos)
-	{
-		_reqVariables.errorCode = 400;
-		_reqVariables.errorMessage = "Bad header line: missing colon";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(400, "Bad header line: missing colon", REQ_ERROR);
 
 	HeaderField temp;
 	temp.name = trimSpaces(headerLine.substr(0, firstColon));
 	temp.value = trimSpaces(headerLine.substr(firstColon + 1));
 
 	if (temp.name.empty())
-	{
-		_reqVariables.errorCode = 400;
-		_reqVariables.errorMessage = "Bad header line: empty header name";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(400, "Bad header line: empty header name", REQ_ERROR);
 
 	_reqVariables.headers.push_back(temp);
-	return true;
+	return NULL;
 }
 
-bool HttpParser::firstLineParse(std::string firstLine)
+Request* HttpParser::firstLineParse(std::string firstLine)
 {
 	size_t firstSpace = firstLine.find(' ');
 	if (firstSpace == std::string::npos)
-	{
-		_reqVariables.errorCode = 400;
-		_reqVariables.errorMessage = "Bad request line: missing first space";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(400, "Bad request line: missing first space", REQ_ERROR);
 
 	size_t secondSpace = firstLine.find(' ', firstSpace + 1);
 	if (secondSpace == std::string::npos)
-	{
-		_reqVariables.errorCode = 400;
-		_reqVariables.errorMessage = "Bad request line: missing second space";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(400, "Bad request line: missing second space", REQ_ERROR);
 
 	size_t thirdSpace = firstLine.find(' ', secondSpace + 1);
 	if (thirdSpace != std::string::npos)
-	{
-		_reqVariables.errorCode = 400;
-		_reqVariables.errorMessage = "Bad request line: too many spaces";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(400, "Bad request line: too many spaces", REQ_ERROR);
 
 	_reqVariables.method = firstLine.substr(0, firstSpace);
 	_reqVariables.requestPath = firstLine.substr(firstSpace + 1,
@@ -136,12 +111,7 @@ bool HttpParser::firstLineParse(std::string firstLine)
 
 	if (_reqVariables.method.empty() || _reqVariables.requestPath.empty()
 		|| _reqVariables.requestVersion.empty())
-	{
-		_reqVariables.errorCode = 400;
-		_reqVariables.errorMessage = "Bad request line: empty component";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(400, "Bad request line: empty component", REQ_ERROR);
 
 	if (_reqVariables.method == "GET")
 		_reqVariables.type = REQ_GET;
@@ -150,27 +120,17 @@ bool HttpParser::firstLineParse(std::string firstLine)
 	else if (_reqVariables.method == "DELETE")
 		_reqVariables.type = REQ_DELETE;
 	else
-	{
-		_reqVariables.errorCode = 405;
-		_reqVariables.errorMessage = "Unsupported method";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(405, "Unsupported method", REQ_ERROR);
 
 	if (_reqVariables.requestVersion != "HTTP/1.1"
 		&& _reqVariables.requestVersion != "HTTP/1.0")
-	{
-		_reqVariables.errorCode = 505;
-		_reqVariables.errorMessage = "Unsupported HTTP version";
-		_reqVariables.type = REQ_ERROR;
-		return false;
-	}
+		return makeErrorRequest(505, "Unsupported HTTP version", REQ_ERROR);
 /* 
 	std::cout << "method is: [" << _reqVariables.method << "]" << std::endl;
 	std::cout << "Path is: [" << _reqVariables.requestPath << "]" << std::endl;
 	std::cout << "Version is: [" << _reqVariables.requestVersion << "]" << std::endl; */
 
-	return true;
+	return NULL;
 }
 
 std::string HttpParser::trimSpaces(const std::string& s) const
