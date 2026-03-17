@@ -7,90 +7,83 @@ HttpParser::HttpParser()
 
 HttpParser::~HttpParser() {}
 
-/* here I should set an error code, without it this function is useless */
-Request* HttpParser::makeErrorRequest(int Code, std::string Message, e_response_type Type)
+/*
+** Reset request state before parsing a new request
+*/
+void HttpParser::resetReqVariables(int clientFD)
 {
-	_reqVariables.errorCode = Code;
-	_reqVariables.errorMessage = Message;
-		_reqVariables.type = Type;
-	reqVariables *currentVars = new reqVariables;
-	*currentVars = _reqVariables;
-	return new Request(currentVars);
-}
-
-Request* HttpParser::parse(char *rawBuffer, size_t bitesRead, int clientFD)
-{
-	Request* errorReq = NULL;
-	_buffer.append(rawBuffer, bitesRead);
-
-	/* if there is no CRLF we return to the connection class function handleIn() 
-	maybe here to use end() will save time of iterating the whole string
-	what happens if inside the buffer I got there is 2 reuqeusts? same problems as getNextLine*/
-	size_t reqEnd = _buffer.find("\r\n\r\n");
-	if (reqEnd == std::string::npos)
-		return NULL;
-
-	/* maybe this intializing code in the contructor */
 	_reqVariables = reqVariables();
-	_reqVariables.contentLength = -1;
+	_reqVariables.headers.clear();
+	_reqVariables.method.clear();
+	_reqVariables.requestPath.clear();
+	_reqVariables.requestVersion.clear();
+	_reqVariables.body.clear();
 	_reqVariables.clientFD = clientFD;
 	_reqVariables.errorCode = 0;
 	_reqVariables.errorMessage = "";
 	_reqVariables.type = REQ_GET;
+	_reqVariables.contentLength = 0;
+	_reqVariables.hasContentLength = false;
+}
 
-	_fullMessage = _buffer.substr(0, reqEnd + 4);
-	_buffer.erase(0, reqEnd + 4);
-
-	/* wouldn't this find the first "\r\n" of the CLRF? */
-	size_t lineEnd = _fullMessage.find("\r\n");
-	if (lineEnd == std::string::npos)
-		return makeErrorRequest(400, "Bad request line", REQ_ERROR);
-
-	std::string firstLine = _fullMessage.substr(0, lineEnd);
-	if (errorReq = firstLineParse(firstLine))
-		return errorReq;
-
-	size_t current = lineEnd + 2;
-	/* this while loops over all the headers */
-	while (current < _fullMessage.size())
-	{
-		size_t next = _fullMessage.find("\r\n", current);
-		if (next == std::string::npos)
-			return makeErrorRequest(400, "Bad header line", REQ_ERROR);
-
-		if (next == current)
-			break;
-
-		std::string headerLine = _fullMessage.substr(current, next - current);
-		if (errorReq = headerParse(headerLine))
-			return errorReq;
-
-		current = next + 2;
-	}
+/*
+** Build an error Request object
+*/
+Request* HttpParser::makeErrorRequest(int code, const std::string& message, e_request_type type)
+{
+	_reqVariables.errorCode = code;
+	_reqVariables.errorMessage = message;
+	_reqVariables.type = type;
 
 	reqVariables *currentVars = new reqVariables;
 	*currentVars = _reqVariables;
 	return new Request(currentVars);
 }
 
-Request* HttpParser::headerParse(std::string headerLine)
+std::string HttpParser::trimSpaces(const std::string& s) const
 {
-	size_t firstColon = headerLine.find(':');
-	if (firstColon == std::string::npos)
-		return makeErrorRequest(400, "Bad header line: missing colon", REQ_ERROR);
+	size_t start = 0;
+	size_t end = s.size();
 
-	HeaderField temp;
-	temp.name = trimSpaces(headerLine.substr(0, firstColon));
-	temp.value = trimSpaces(headerLine.substr(firstColon + 1));
+	while (start < end && (s[start] == ' ' || s[start] == '\t'))
+		start++;
 
-	if (temp.name.empty())
-		return makeErrorRequest(400, "Bad header line: empty header name", REQ_ERROR);
+	while (end > start && (s[end - 1] == ' ' || s[end - 1] == '\t'))
+		end--;
 
-	_reqVariables.headers.push_back(temp);
-	return NULL;
+	return s.substr(start, end - start);
 }
 
-Request* HttpParser::firstLineParse(std::string firstLine)
+std::string HttpParser::toLower(const std::string& s) const
+{
+	std::string result = s;
+
+	for (size_t i = 0; i < result.size(); i++)
+		result[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(result[i])));
+	return result;
+}
+
+bool HttpParser::isDigits(const std::string& s) const
+{
+	size_t i;
+
+	if (s.empty())
+		return false;
+	i = 0;
+	while (i < s.size())
+	{
+		if (!std::isdigit(static_cast<unsigned char>(s[i])))
+			return false;
+		i++;
+	}
+	return true;
+}
+
+/*
+** Parse the first request line:
+** METHOD SP REQUEST-TARGET SP HTTP-VERSION
+*/
+Request* HttpParser::firstLineParse(const std::string& firstLine)
 {
 	size_t firstSpace = firstLine.find(' ');
 	if (firstSpace == std::string::npos)
@@ -125,24 +118,155 @@ Request* HttpParser::firstLineParse(std::string firstLine)
 	if (_reqVariables.requestVersion != "HTTP/1.1"
 		&& _reqVariables.requestVersion != "HTTP/1.0")
 		return makeErrorRequest(505, "Unsupported HTTP version", REQ_ERROR);
-/* 
-	std::cout << "method is: [" << _reqVariables.method << "]" << std::endl;
-	std::cout << "Path is: [" << _reqVariables.requestPath << "]" << std::endl;
-	std::cout << "Version is: [" << _reqVariables.requestVersion << "]" << std::endl; */
 
 	return NULL;
 }
 
-std::string HttpParser::trimSpaces(const std::string& s) const
+/*
+** Parse one header line:
+** Name: Value
+**
+** Also detect Content-Length here.
+*/
+Request* HttpParser::headerParse(const std::string& headerLine)
 {
-	size_t start = 0;
-	size_t end = s.size();
+	size_t firstColon = headerLine.find(':');
+	if (firstColon == std::string::npos)
+		return makeErrorRequest(400, "Bad header line: missing colon", REQ_ERROR);
 
-	while (start < end && (s[start] == ' ' || s[start] == '\t'))
-		start++;
+	HeaderField temp;
+	temp.name = trimSpaces(headerLine.substr(0, firstColon));
+	temp.value = trimSpaces(headerLine.substr(firstColon + 1));
 
-	while (end > start && (s[end - 1] == ' ' || s[end - 1] == '\t'))
-		end--;
+	if (temp.name.empty())
+		return makeErrorRequest(400, "Bad header line: empty header name", REQ_ERROR);
 
-	return s.substr(start, end - start);
+	_reqVariables.headers.push_back(temp);
+
+	std::string lowerName = toLower(temp.name);
+
+	if (lowerName == "content-length")
+	{
+		if (_reqVariables.hasContentLength)
+			return makeErrorRequest(400, "Duplicate Content-Length", REQ_ERROR);
+
+		if (!isDigits(temp.value))
+			return makeErrorRequest(400, "Invalid Content-Length", REQ_ERROR);
+
+		std::istringstream iss(temp.value);
+		long len = 0;
+		iss >> len;
+
+		if (iss.fail() || !iss.eof() || len < 0)
+			return makeErrorRequest(400, "Invalid Content-Length", REQ_ERROR);
+
+		_reqVariables.contentLength = len;
+		_reqVariables.hasContentLength = true;
+	}
+
+	/*
+	** For now reject Transfer-Encoding because you probably do not support chunked bodies yet.
+	*/
+	if (lowerName == "transfer-encoding")
+		return makeErrorRequest(501, "Transfer-Encoding not supported", REQ_ERROR);
+
+	return NULL;
+}
+
+/*
+** Parse one full HTTP request if enough bytes are already in _buffer.
+**
+** Returns:
+** - NULL if request is not complete yet
+** - Request* if request is complete
+** - Request* with error fields if malformed
+*/
+Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
+{
+	Request* errorReq = NULL;
+
+	_buffer.append(rawBuffer, bytesRead);
+
+	/*
+	** First, wait until the full header block exists.
+	*/
+	size_t headerEnd = _buffer.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+		return NULL;
+
+	/*
+	** Parse only the header section first.
+	*/
+	std::string headerBlock = _buffer.substr(0, headerEnd + 4);
+
+	resetReqVariables(clientFD);
+
+	size_t lineEnd = headerBlock.find("\r\n");
+	if (lineEnd == std::string::npos)
+		return makeErrorRequest(400, "Bad request line", REQ_ERROR);
+
+	std::string firstLine = headerBlock.substr(0, lineEnd);
+	if ((errorReq = firstLineParse(firstLine)) != NULL)
+		return errorReq;
+
+	size_t current = lineEnd + 2;
+
+	/*
+	** Parse all header lines until the empty line
+	*/
+	while (current < headerBlock.size())
+	{
+		size_t next = headerBlock.find("\r\n", current);
+		if (next == std::string::npos)
+			return makeErrorRequest(400, "Bad header line", REQ_ERROR);
+
+		/*
+		** Empty line => end of headers
+		*/
+		if (next == current)
+			break;
+
+		std::string headerLine = headerBlock.substr(current, next - current);
+		if ((errorReq = headerParse(headerLine)) != NULL)
+			return errorReq;
+
+		current = next + 2;
+	}
+
+	/*
+	** If there is a body, wait until all body bytes are present.
+	**
+	** totalNeeded =
+	**   bytes of headers including "\r\n\r\n"
+	**   + bytes of body from Content-Length
+	*/
+	size_t totalNeeded = headerEnd + 4 + static_cast<size_t>(_reqVariables.contentLength);
+
+	if (_buffer.size() < totalNeeded)
+		return NULL;
+
+	/*
+	** Now we have the full request, including body if any.
+	*/
+	_fullMessage = _buffer.substr(0, totalNeeded);
+
+	if (_reqVariables.contentLength > 0)
+	{
+		_reqVariables.body = _buffer.substr(headerEnd + 4,
+			static_cast<size_t>(_reqVariables.contentLength));
+	}
+	else
+	{
+		_reqVariables.body.clear();
+	}
+
+	/*
+	** Remove only the current request from the buffer.
+	** This is important if multiple requests arrived together.
+	*/
+	_buffer.erase(0, totalNeeded);
+
+	reqVariables *currentVars = new reqVariables;
+	*currentVars = _reqVariables;
+	return new Request(currentVars);
 }

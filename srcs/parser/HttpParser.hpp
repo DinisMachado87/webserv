@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <vector>
 #include <iostream>
+#include <sstream>
+#include <cctype>
 
 class HttpParser
 {
@@ -19,23 +21,26 @@ private:
 	reqVariables	_reqVariables;
 
 private:
-	//explicit disables
+	// explicit disables
 	HttpParser(const HttpParser& other);
 	HttpParser& operator=(const HttpParser& other);
 
-	//private methods
-	Request*	firstLineParse(std::string firstLine);
-	Request*	headerParse(std::string headerLine);
+	// private methods
+	Request*	firstLineParse(const std::string& firstLine);
+	Request*	headerParse(const std::string& headerLine);
 	std::string	trimSpaces(const std::string& s) const;
-	Request*	makeErrorRequest(int Code, std::string Message, e_response_type Type);
+	std::string	toLower(const std::string& s) const;
+	bool		isDigits(const std::string& s) const;
+	Request*	makeErrorRequest(int code, const std::string& message, e_request_type type);
+	void		resetReqVariables(int clientFD);
 
 public:
 	// Constructors and destructors
 	HttpParser();
 	~HttpParser();
 
-	//pulic methods
-	Request* parse(char *rawBuffer, size_t bitesRead, int clientFD);
+	// public methods
+	Request*	parse(char *rawBuffer, size_t bytesRead, int clientFD);
 };
 
 #endif
