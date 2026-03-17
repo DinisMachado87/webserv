@@ -38,6 +38,9 @@ std::string				REMOTE_ADDR;	//network address of client sending the request (ipv
 std::string				REMOTE_HOST;	//domain name of the client sending the request, or {NULL}
 std::string				requestVersion; //http/1.1 or other
 std::string 			body;
+std::string 			host;
+std::string 			queryString;
+size_t     				maxBodySize;
 std::vector<HeaderField> headers; //the headers of the http request
 e_request_type			type;	
 }	reqVariables;
@@ -50,7 +53,7 @@ public:
 		const std::string& remoteAddr, const std::string& remoteHost); */
 	~Request(void);
 
-	void respond(std::string message);
+	void respond();
 	const reqVariables&	getVariables() const;
 	const std::string&	getBody() const;
 	int					getClientFD() const;

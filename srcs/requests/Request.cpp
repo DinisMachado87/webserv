@@ -13,9 +13,10 @@ Request::~Request(void)
 	delete vars;
 }
 
-void Request::respond(std::string message)
+void Request::respond()
 {
 	std::string statusLine = "HTTP/1.1 200 OK\r\n";
+	std::string message = "Hi from request";
 
 	if (vars->type == REQ_ERROR)
 	{
@@ -59,6 +60,8 @@ Location* Request::getLocation() const
 {
 	return _location;
 }
+
+
 
 
 

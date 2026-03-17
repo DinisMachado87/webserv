@@ -33,6 +33,9 @@ private:
 	bool		isDigits(const std::string& s) const;
 	Request*	makeErrorRequest(int code, const std::string& message, e_request_type type);
 	void		resetReqVariables(int clientFD);
+	Request* 	parseRequestTarget(const std::string& target);
+	bool 		isValidHostValue(const std::string& s) const;
+	Request*	validateHeaders(void);
 
 public:
 	// Constructors and destructors

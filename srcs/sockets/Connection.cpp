@@ -29,7 +29,7 @@ Connection*	Connection::handleIn() {
 	if (bitesRead > 0)
 		_request = _parser.parse(buffer, bitesRead, _fd);
 	if (_request)
-		_request->respond("Hi from Request");
+		_request->respond();
 	
 	return NULL;
 };
