@@ -36,6 +36,9 @@ private:
 	Request* 	parseRequestTarget(const std::string& target);
 	bool 		isValidHostValue(const std::string& s) const;
 	Request*	validateHeaders(void);
+	Request* 	eraseHeaderAndReturn(Request* err, size_t headerEnd);
+	Request*	clearBufferAndReturn(Request* err);
+	bool 		isValidHeaderName(const std::string& s) const;
 
 public:
 	// Constructors and destructors
