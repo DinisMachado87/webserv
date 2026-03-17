@@ -5,6 +5,7 @@
 #include "Token.hpp"
 #include <cstddef>
 #include <map>
+#include <netinet/in.h>
 #include <string>
 #include <vector>
 
@@ -28,10 +29,12 @@ public:
 	~Expect();
 
 	// Methods
-	int nextInteger();
+	uint16_t		port(const std::string& portStr);
+	in_addr_t		ip(std::string& ipStr);
+	int				nextInteger();
 	void			errorPage(std::map<uint, StrView>& errorMap, std::string& strBuf);
 	unsigned char	word(const char *str1);
-	Span<StrView>	wordVec(std::vector<StrView>& vecBuf, unsigned int& vecCursor);
+	Span<StrView>	wordVec(std::vector<StrView>& vecBuf, uint& vecCursor);
 	bool			onOff();
 	int				integer();
 	size_t			size();

@@ -2,12 +2,14 @@
 #include "Expect.hpp"
 #include "StrView.hpp"
 #include "Token.hpp"
+#include <arpa/inet.h>
 #include <cerrno>
 #include <climits>
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <map>
+#include <netinet/in.h>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -114,7 +116,7 @@ void	Expect::paths(StrView* paths, int n) {
 
 size_t Expect::applySizeUnit(size_t value, char unit) {
 	if (unit == '\0') return value;
-	
+
 	size_t multiplier;
 	switch (tolower(unit)) {
 		case 'k': multiplier = 1024; break;
@@ -122,7 +124,7 @@ size_t Expect::applySizeUnit(size_t value, char unit) {
 		case 'g': multiplier = 1024 * 1024 * 1024; break;
 		default: throw parsingErr("Invalid size unit (use k, m, or g)");
 	}
-	
+
 	if (value > std::numeric_limits<size_t>::max() / multiplier)
 		throw parsingErr("Size value too large");
 	return value * multiplier;
@@ -132,16 +134,16 @@ long Expect::number(const char** endPtr) {
 	StrView token = _token.getStrV();
 	const char* start = token.getStart();
 	const char* tokenEnd = start + token.getLen();
-	
+
 	errno = 0;
 	char* parseEnd;
 	long result = strtol(start, &parseEnd, 10);
-	
+
 	if (errno == ERANGE) throw parsingErr("Number out of range");
 	if (parseEnd == start) throw parsingErr("Expected number");
 	if (parseEnd > tokenEnd) throw parsingErr("Invalid number format");
 	if (result < 0) throw parsingErr("Negative number not allowed");
-	
+
 	*endPtr = parseEnd;
 	return result;
 }
@@ -149,13 +151,13 @@ long Expect::number(const char** endPtr) {
 int Expect::integer() {
 	const char* end;
 	long result = number(&end);
-	
+
 	StrView token = _token.getStrV();
 	if (end != token.getStart() + token.getLen())
 		throw parsingErr("Unexpected characters after number");
 	if (result > INT_MAX)
 		throw parsingErr("Number exceeds INT_MAX");
-	
+
 	return static_cast<int>(result);
 }
 
@@ -166,17 +168,70 @@ int Expect::nextInteger() {
 
 size_t Expect::size() {
 	_token.getNextOfType(Token::WORD, "word");
-	
+
 	const char* end;
 	long result = number(&end);
 	size_t size = static_cast<size_t>(result);
 	StrView token = _token.getStrV();
 	const char* tokenEnd = token.getStart() + token.getLen();
-	
+
 	if (end != tokenEnd) {
 		size = applySizeUnit(size, *end);
 		if (++end != tokenEnd)
 			throw parsingErr("Invalid characters after size unit");
 	}
 	return size;
+}
+
+in_addr_t Expect::ip(string& ipStr) {
+	const size_t nOctets = 4;
+
+	if (ipStr == "*" || ipStr == "0.0.0.0")
+		return INADDR_ANY;
+
+	if (ipStr == "localhost")
+		ipStr = "127.0.0.1";
+
+	uchar octets[nOctets];
+	size_t start = 0;
+
+	for (size_t i = 0; i < nOctets; i++) {
+		size_t dotPos = (i < 3) ? ipStr.find('.', start) : ipStr.length();
+
+		if (dotPos == string::npos || dotPos == start) // npos == not found/no position
+			throw parsingErr("Invalid IP address");
+
+		string octetStr = ipStr.substr(start, dotPos - start);
+
+		char* end;
+		errno = 0;
+		long octet = strtol(octetStr.c_str(), &end, 10);
+
+		if (errno == ERANGE || *end != '\0' || octet < 0 || octet > 255)
+			throw parsingErr("Invalid IP address");
+
+		octets[i] = static_cast<uchar>(octet);
+		start = dotPos + 1;
+	}
+
+	uint32_t result = 0;
+	result |= octets[0];
+	result |= octets[1] << 8;
+	result |= octets[2] << 16;
+	result |= octets[3] << 24;
+	return static_cast<in_addr_t>(result);
+}
+
+uint16_t Expect::port(const string& portStr) {
+	if (portStr.empty())
+		throw parsingErr("Invalid port number");
+
+	char* end;
+	errno = 0;
+	long port = strtol(portStr.c_str(), &end, 10);
+
+	if (errno == ERANGE || *end != '\0' || port < 1 || port > 65535)
+		throw parsingErr("Port must be between 1 and 65535");
+
+	return static_cast<uint16_t>(port);
 }
