@@ -21,7 +21,7 @@ enum e_request_type
 	REQ_ERROR
 };
 
-
+class Server;
 
 							//RFC2616
 typedef	struct	reqVariables {		//{defaults}
@@ -49,20 +49,23 @@ e_request_type			type;
 class	Request
 {
 public:
-	Request(reqVariables *vars);
-/* 	Request(Location* loc, const HttpRequest& parsed, int clientFD,
-		const std::string& remoteAddr, const std::string& remoteHost); */
+	Request(reqVariables *vars, const Server* server);
 	~Request(void);
 
 	void respond();
 	const reqVariables&	getVariables() const;
 	const std::string&	getBody() const;
 	int					getClientFD() const;
-	Location*			getLocation() const;
+	Const Location*		getLocation() const;
 
-protected:
-	reqVariables *vars;
-	Location*	_location;
+private:
+	reqVariables	*vars;
+	Const Location*	_location;
+	const Server*	_server;
+	std::string		_resolvedPath;
+	bool			_isDirectory;	
+	bool			_isRegularFile;
+	bool			_isCgi;
 
 private:
 	Request(void);
@@ -75,8 +78,21 @@ private:
 	void handleError();
 
 	void sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader);
-	void sendSimpleErrorRespone(int code, const std::string& reason, const std::string& message);
-	void	sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);
+	void sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);
+
+	//helper functions for handleGet()
+	bool matchLocation();
+	bool isMethodAllowed(uchar method) const;
+	bool buildResolvedPath();
+	bool inspectResolvedPath();
+	bool isCgiPath() const;
+
+	void handleGetFile();
+	void handleGetDirectory();
+	void handleGetCgi();
+
+	static std::string getReasonPhrase(int code);
+	void	setError(int code, const std::string& message);
 
 };
 

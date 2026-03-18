@@ -1,9 +1,12 @@
 #include "HttpParser.hpp"
+#include "../server/Server.hpp"
 
 HttpParser::HttpParser()
 {
 	std::cout << "HttpParser constructed\n";
 }
+
+HttpParser::HttpParser(const Server& server) : _server(server) {}
 
 HttpParser::~HttpParser() {}
 
@@ -116,7 +119,7 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
 
 	reqVariables *currentVars = new reqVariables;
 	*currentVars = _reqVariables;
-	return new Request(currentVars);
+	return new Request(currentVars, _server);
 }
 
 /* Build an error Request object */
@@ -128,7 +131,7 @@ Request* HttpParser::makeErrorRequest(int code, const std::string& message, e_re
 
 	reqVariables *currentVars = new reqVariables;
 	*currentVars = _reqVariables;
-	return new Request(currentVars);
+	return new Request(currentVars, _server);
 }
 
 Request* HttpParser::eraseHeaderAndReturn(Request* err, size_t headerEnd)

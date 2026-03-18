@@ -13,12 +13,15 @@
 #include <sstream>
 #include <cctype>
 
+class Server;
+
 class HttpParser
 {
 private:
 	std::string		_buffer;
 	std::string		_fullMessage;
 	reqVariables	_reqVariables;
+	const Server& 	_server;
 
 private:
 	// explicit disables
@@ -43,6 +46,7 @@ private:
 public:
 	// Constructors and destructors
 	HttpParser();
+	HttpParser(const Server& server);
 	~HttpParser();
 
 	// public methods
