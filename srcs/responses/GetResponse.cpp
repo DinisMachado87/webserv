@@ -6,11 +6,11 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/17 13:52:19 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 17:17:36 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/GetResponse.hpp"
+#include "GetResponse.hpp"
 
 
 
@@ -50,15 +50,10 @@ int	GetResponse::getResponseBody(void)
 				return (403);
 		}
 	}
-	std::fstream fs(, std::ios::in);
-	if (!fs)
-	{
-		_responseStatus =
-	}
-
+	return 0;
 }
 
-int	GetResponse::sendResponse(int clientFD)
+int	GetResponse::sendResponse(const int &clientFD)
 {
 	getResponseBody();
 	createHeader();
