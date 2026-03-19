@@ -25,7 +25,10 @@ Connection::~Connection() {}
 Connection*	Connection::handleIn() {
 	char	buffer[CHUNK_SIZE + 1];
 	size_t	bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
-	write(1, buffer, bitesRead);
+	if (bitesRead > 0)
+		_request = _parser.parse(buffer, bitesRead, _fd, _server);
+	if (_request)
+		_request->respond();
 	
 	return NULL;
 };

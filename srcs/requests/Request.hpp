@@ -56,11 +56,11 @@ public:
 	const reqVariables&	getVariables() const;
 	const std::string&	getBody() const;
 	int					getClientFD() const;
-	Const Location*		getLocation() const;
+	const Location*		getLocation() const;
 
 private:
 	reqVariables	*vars;
-	Const Location*	_location;
+	const Location*	_location;
 	const Server*	_server;
 	std::string		_resolvedPath;
 	bool			_isDirectory;	
@@ -82,7 +82,7 @@ private:
 
 	//helper functions for handleGet()
 	bool matchLocation();
-	bool isMethodAllowed(uchar method) const;
+	bool isMethodAllowed(unsigned char method) const;
 	bool buildResolvedPath();
 	bool inspectResolvedPath();
 	bool isCgiPath() const;
@@ -91,7 +91,7 @@ private:
 	void handleGetDirectory();
 	void handleGetCgi();
 
-	static std::string getReasonPhrase(int code);
+	std::string getReasonPhrase(int code);
 	void	setError(int code, const std::string& message);
 
 };

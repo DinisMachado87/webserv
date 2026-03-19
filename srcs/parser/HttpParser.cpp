@@ -1,12 +1,11 @@
 #include "HttpParser.hpp"
 #include "../server/Server.hpp"
 
-HttpParser::HttpParser()
+HttpParser::HttpParser() : _server(NULL)
 {
 	std::cout << "HttpParser constructed\n";
 }
 
-HttpParser::HttpParser(const Server& server) : _server(server) {}
 
 HttpParser::~HttpParser() {}
 
@@ -36,9 +35,10 @@ Returns:
 - Request* if request is complete
 - Request* with error fields if malformed
 */
-Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
+Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD, const Server& server)
 {
 	Request* errorReq = NULL;
+	_server = &server;
 
 	if (rawBuffer != NULL && bytesRead > 0)
 		_buffer.append(rawBuffer, bytesRead);

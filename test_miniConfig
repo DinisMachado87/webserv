@@ -1,0 +1,8 @@
+server {
+    listen 8080;
+    root /home/akosloff/Projects/webserv/webserv_test;
+    index index.html;
+
+    location / {
+    }
+}

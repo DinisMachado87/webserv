@@ -1,5 +1,5 @@
 #include "Request.hpp"
-#include "../srcs/Server/server.hpp"
+#include "../server/Server.hpp"
 #include <sys/socket.h>
 #include <sstream>
 #include <sys/stat.h>
@@ -71,6 +71,7 @@ void Request::sendSimpleErrorResponse(int code, const std::string& reason, const
 
 void Request::handleGet()
 {
+	std::cout << "GET path: " << vars->requestPath << std::endl;
 	if (!matchLocation())
 		return handleError();
 
@@ -132,7 +133,7 @@ bool Request::matchLocation()
 {
 	size_t i;
 	size_t bestLen = 0;
-	Location* best = NULL;
+	const Location* best = NULL;
 	const std::string& path = vars->requestPath;
 
 	if (_server == NULL)
@@ -143,7 +144,7 @@ bool Request::matchLocation()
 
 	for (i = 0; i < _server->_locations.size(); i++)
 	{
-		Location& loc = _server->_locations[i];
+		const Location& loc = _server->_locations[i];
 		const char* locPathC = loc.getPath();
 		std::string locPath;
 
@@ -173,6 +174,7 @@ bool Request::matchLocation()
 		setError(404, "No matching location");
 		return false;
 	}
+	std::cout << "Matched location: " << _location->getPath() << std::endl;
 	return true;
 }
 
@@ -238,6 +240,7 @@ bool Request::buildResolvedPath()
 		setError(500, "Resolved path is empty");
 		return false;
 	}
+	std::cout << "Resolved path: " << _resolvedPath << std::endl;
 	return true;
 }
 
@@ -256,6 +259,9 @@ bool Request::inspectResolvedPath()
 	_isDirectory = S_ISDIR(st.st_mode);
 	_isRegularFile = S_ISREG(st.st_mode);
 	_isCgi = (_isRegularFile && isCgiPath());
+
+
+	std::cout << "_isDirectory=" << _isDirectory << " _isRegularFile=" << _isRegularFile << " _isCgi=" << _isCgi << std::endl;
 
 	return true;
 }
@@ -308,7 +314,7 @@ void Request::setError(int code, const std::string& message)
 	vars->errorMessage = message;
 }
 
-static std::string getReasonPhrase(int code)
+std::string Request::getReasonPhrase(int code)
 {
 	switch (code)
 	{
