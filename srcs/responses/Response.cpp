@@ -6,11 +6,11 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/17 13:52:26 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/17 16:07:12 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/Response.hpp"
+#include "Response.hpp"
 
 Response::Response(Location* loc, reqVariables* vars, std::string* requestBody) : _location(loc), _requestVars(vars), _requestBody(requestBody)
 {
@@ -37,9 +37,9 @@ void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over, s
 	vars->port = 5555;
 	vars->requestPath = "includes/cgi-bin/hello.cgi";
 	// vars->contentType =
-	vars->pathInfo = "teams/users";
+	// vars->requestPath = "teams/users";
 	vars->queryString = "query=hi";
 	vars->scriptName = "includes/cgi-bin/hello.cgi";
-	vars->remoteAddr = "175.0.0.23";
-	vars->remoteHost = "client.com";
+	vars->REMOTE_ADDR = "175.0.0.23";
+	vars->REMOTE_HOST = "client.com";
 }

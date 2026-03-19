@@ -17,7 +17,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include "Request.hpp"
+#include "../requests/Request.hpp"
+#include "../server/Server.hpp"
+
 
 class	Response
 {
@@ -34,20 +36,12 @@ protected:
 	std::string		_responseHeader;
 	std::string		_responseBody;
 	void			getTime(char* buf, int bufSize);
+	virtual int		sendResponse(const int& clientFD);
+	virtual int		generateResponse(void);
 
 private:
 	Response(const Response &other);
 	Response &	operator=(const Response &other);
-	int		sendResponse(int clientFD);
-};
-
-
-struct Overrides {
-
-};
-
-struct Location {
-
 };
 
 void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over, std::string* body);

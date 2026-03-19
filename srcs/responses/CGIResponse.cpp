@@ -6,11 +6,11 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/17 13:52:15 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 15:04:39 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/CGI.hpp"
+#include "CGIResponse.hpp"
 
 
 
@@ -31,7 +31,6 @@ int	CGIResponse::createHeader(void)
 	getTime(buf,64);
 	header << "Date: " << buf << "\r\n";
 	header << "Server: nailedIt/1.0\r\n";
-	// Content-Type: text/html; charset=UTF-8\r\n
 	if (_responseBody.size() > 0)
 		header << "Content-Length: " << _responseBody.size() << "\r\n";
 	header << "\r\n";
@@ -42,7 +41,7 @@ int	CGIResponse::createHeader(void)
 int	CGIResponse::sendResponse(int clientFD)
 {
 	if (runCGI() != 0)
-		return (1);//sendErrorPage());
+		return (1);
 	createHeader();
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
@@ -135,14 +134,14 @@ void	CGIResponse::setEnvironment(void)
 	if (this->_requestVars->contentLength >= 0)
 	{
 		char	buf[32];
-		::snprintf(buf, 32, "%d", this->_requestVars->contentLength);
+		::snprintf(buf, 32, "%ld", this->_requestVars->contentLength);
 		setenv("CONTENT_LENGTH", buf, 1);
 	}
 	// else
 	// 	setenv("CONTENT_LENGTH", "", 1);
 
-	if (!this->_requestVars->contentType.empty())
-		setenv("CONTENT_TYPE", this->_requestVars->contentType.c_str(), 1);
+	if (!this->_requestVars->CONTENT_TYPE.empty())
+		setenv("CONTENT_TYPE", this->_requestVars->CONTENT_TYPE.c_str(), 1);
 	// else
 	// 	setenv("CONTENT_TYPE", "", 1);
 
@@ -150,8 +149,8 @@ void	CGIResponse::setEnvironment(void)
 		setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
 
 
-	if (!this->_requestVars->pathInfo.empty())
-		setenv("PATH_INFO", this->_requestVars->pathInfo.c_str(), 1);
+	if (!this->_requestVars->requestPath.empty())
+		setenv("PATH_INFO", this->_requestVars->requestPath.c_str(), 1);
 	else
 		setenv("PATH_INFO", "", 1);
 
@@ -165,13 +164,13 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("QUERY_STRING", "NULL", 1);
 
-	if (!this->_requestVars->remoteAddr.empty())
-		setenv("REMOTE_ADDR", this->_requestVars->remoteAddr.c_str(), 1);
+	if (!this->_requestVars->REMOTE_ADDR.empty())
+		setenv("REMOTE_ADDR", this->_requestVars->REMOTE_ADDR.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_ADDR", "NULL", 1);
 
-	if (!this->_requestVars->remoteHost.empty())
-		setenv("REMOTE_HOST", this->_requestVars->remoteHost.c_str(), 1);
+	if (!this->_requestVars->REMOTE_HOST.empty())
+		setenv("REMOTE_HOST", this->_requestVars->REMOTE_HOST.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_HOST", "NULL", 1);
 
@@ -185,7 +184,7 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("REMOTE_USER", "NULL", 1);
 
-	switch (this->_requestVars->method) {
+	switch (this->_requestVars->type) {
 		case GET:
 			setenv("REQUEST_METHOD", "GET", 1);
 			break ;
@@ -194,6 +193,8 @@ void	CGIResponse::setEnvironment(void)
 			break ;
 		case DELETE:
 			setenv("REQUEST_METHOD", "DELETE", 1);
+			break ;
+		case ERROR:
 			break ;
 	}
 	// else
@@ -226,33 +227,6 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("SERVER_SOFTWARE", "NULL", 1);
 }
-
-/* void	CGIResponse::splitPaths(std::string &requestPath)
-{
-	size_t	reqLen, SNlen, PIlen, QSlen;
-	reqLen = requestPath.length();
-	size_t	SNlen = requestPath.find(".cgi") + 4;
-	if (SNlen == reqLen)
-	{
-		this->_paths.scriptName = requestPath;
-		return ;
-	}
-	size_t	PIlen = requestPath.find("?");
-	if (PIlen == requestPath.npos)
-
-
-
-} */
-
-/* typedef	struct	reqVariables	{		//{defaults}
-requestMethod	method;			//GET / POST / PUT / DELETE etc
-int				contentLength;	//length of message body - taken from header or manually calculated if chunked {-1}
-std::string		requestPath;	//e.g. URL=example.com/cgi-bin/hello.cgi/user/admin {NULL}
-char*			CONTENT_TYPE;	//media type of message body - from header {NULL}
-char*			QUERY_STRING;	//information for the CGI script to affect the return value - URL after '?' {NULL} e.g. URL=example.com/cgi-bin/hello.cgi/user/admin?query=date QUERY_STRING=query=date
-char*			REMOTE_ADDR;	//network address of client sending the request (ipv4 or ipv6) {NULL}
-char*			REMOTE_HOST;	//domain name of the client sending the request, or {NULL}
-}	reqVariables; */
 
 void	CGIResponse::initialiseMetaVs(void)
 {
