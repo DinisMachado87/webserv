@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/19 17:16:26 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 18:23:06 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 
 
-CGIResponse::CGIResponse(Location* loc, reqVariables* vars, std::string* requestBody) : Response(loc, vars, requestBody)
+CGIResponse::CGIResponse(Location* loc, reqVariables* vars) : Response(loc, vars)
 {
 
 }
@@ -64,7 +64,9 @@ int	CGIResponse::childProcess(int pipeP2C[2], int pipeC2P[2])
 	close(pipeC2P[1]);
 	close(pipeP2C[0]);
 	execve (fileName, argv, environ);
+	(void)argv;
 	perror("child execution");
+	// write(1, "lalala", 6);
 	exit (1);
 }
 
@@ -87,7 +89,7 @@ int		CGIResponse::runCGI(void)
 		this->childProcess(pipeP2C, pipeC2P);
 	close(pipeP2C[0]);
 	close(pipeC2P[1]);
-	write(pipeP2C[1], this->_requestBody->c_str(), this->_requestBody->size());
+	write(pipeP2C[1], this->_requestVars->body.c_str(), this->_requestVars->body.size());
 	close(pipeP2C[1]);
 	int	status = 0;
 	waitpid(pid, &status, 0);
@@ -108,7 +110,7 @@ int		CGIResponse::runCGI(void)
 		this->_responseBody.resize(size + chunk);
 	}
 	if (res != -1)
-		this->_responseBody.resize(oldSize + res + 2);
+		this->_responseBody.resize(oldSize + res);
 	printf("[written: %lu] [status: %d]\n\n", this->_responseBody.size(), status);
 	close(pipeC2P[0]);
 	return (0);
@@ -117,11 +119,6 @@ int		CGIResponse::runCGI(void)
 std::string	*CGIResponse::getCGIoutput(void)
 {
 	return (&this->_responseBody);
-}
-
-void	CGIResponse::setRequestBody(std::string* body)
-{
-	this->_requestBody = body;
 }
 
 void	CGIResponse::setEnvironment(void)

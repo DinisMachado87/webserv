@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/19 17:17:36 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 17:55:34 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 
 
-GetResponse::GetResponse(Location* loc, reqVariables* vars, std::string* requestBody) : Response(loc, vars, requestBody)
+GetResponse::GetResponse(Location* loc, reqVariables* vars) : Response(loc, vars)
 {
 
 }

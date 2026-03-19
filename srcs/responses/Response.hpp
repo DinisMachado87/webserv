@@ -24,14 +24,13 @@
 class	Response
 {
 public:
-	Response(Location* loc, reqVariables* vars, std::string* requestBody);
+	Response(Location* loc, reqVariables* vars);
 	virtual ~Response(void);
 
 
 protected:
 	Location*		_location;
 	reqVariables*	_requestVars;
-	std::string*	_requestBody;
 	std::string		_responseHeader;
 	std::string		_responseBody;
 	void			getTime(char* buf, int bufSize);
@@ -44,4 +43,4 @@ private:
 	Response &	operator=(const Response &other);
 };
 
-void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over, std::string* body);
+void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over);

@@ -6,13 +6,13 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/19 17:21:51 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 18:05:11 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.hpp"
 
-Response::Response(Location* loc, reqVariables* vars, std::string* requestBody) : _location(loc), _requestVars(vars), _requestBody(requestBody)
+Response::Response(Location* loc, reqVariables* vars) : _location(loc), _requestVars(vars)
 {
 
 }
@@ -36,19 +36,20 @@ void	Response::getTime(char* buf, int bufSize)
 	std::strftime(buf, bufSize, "%a, %d %b %Y %H:%M:%S", std::localtime(&current));
 }
 
-void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over, std::string* body)
+void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over)
 {
 	(void)loc;
 	(void)vars;
 	(void)over;
 	vars->method = REQ_POST;
-	vars->contentLength = body->size();
+	vars->body = "<body> here is some body </body>";
+	vars->contentLength = vars->body.size();
 	// vars->port = 5555;
-	vars->requestPath = "includes/cgi-bin/hello.cgi";
+	vars->requestPath = "hello.cgi";
 	// vars->contentType =
-	// vars->requestPath = "teams/users";
+	vars->requestPath = "teams/users";
 	vars->queryString = "query=hi";
-	vars->scriptName = "includes/cgi-bin/hello.cgi";
+	vars->scriptName = "hello.cgi";
 	vars->remoteAddr = "175.0.0.23";
 	vars->remoteHost = "client.com";
 }

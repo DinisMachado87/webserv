@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/26 16:40:12 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/19 17:17:26 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 17:55:45 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 class	GetResponse : public Response
 {
 public:
-	GetResponse(Location* loc, reqVariables* vars, std::string* requestBody);
+	GetResponse(Location* loc, reqVariables* vars);
 	~GetResponse(void);
 	int				sendResponse(const int &clientFD);
 
