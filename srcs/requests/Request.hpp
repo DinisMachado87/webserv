@@ -33,10 +33,10 @@ int						clientFD;
 int						errorCode; //400 or 405 or etc
 std::string				errorMessage; //actual message to print
 std::string				requestPath;	//e.g. URL=example.com/cgi-bin/hello.cgi/user/admin {NULL} (parser needs to check for cgi-bin)
-std::string				CONTENT_TYPE;	//media type of message body - from header {NULL}
-std::string				QUERY_STRING;	//information for the CGI script to affect the return value - URL after '?' {NULL} e.g. URL=example.com/cgi-bin/hello.cgi/user/admin?query=date QUERY_STRING=query=date
-std::string				REMOTE_ADDR;	//network address of client sending the request (ipv4 or ipv6) {NULL}
-std::string				REMOTE_HOST;	//domain name of the client sending the request, or {NULL}
+std::string 			contentType; //media type of message body - from header {NULL}
+std::string 			queryString; //information for the CGI script to affect the return value - URL after '?' {NULL} e.g. URL=example.com/cgi-bin/hello.cgi/user/admin?query=date QUERY_STRING=query=date
+std::string 			remoteAddr;	//network address of client sending the request (ipv4 or ipv6) {NULL}
+std::string 			remoteHost; //domain name of the client sending the request, or {NULL}
 std::string				requestVersion; //http/1.1 or other
 std::string 			body;
 std::string 			host;
@@ -76,6 +76,10 @@ private:
 	void handlePost();
 	void handleDelete();
 	void handleError();
+	bool validate()
+	bool validateGet();
+	bool validatePost();
+{
 
 	void sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader);
 	void sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);

@@ -28,16 +28,107 @@ void Request::respond()
 	switch (vars->type)
 	{
 		case REQ_GET:
+			if (!validateGet())
+				return handleError();
 			return handleGet();
+
 		case REQ_POST:
+			if (!validatePost())
+				return handleError();
 			return handlePost();
+
 		case REQ_DELETE:
+			if (!validateDelete())
+				return handleError();
 			return handleDelete();
+
 		case REQ_ERROR:
 			return handleError();
+
 		default:
 			return sendSimpleErrorResponse(500, "Internal Server Error", "Unknown request type");
 	}
+}}
+}
+
+bool Request::validate()
+{
+	if (vars->type == REQ_ERROR)
+		return false;
+	if (vars->type == REQ_GET)
+		return validateGet();
+	if (vars->type == REQ_POST)
+		return validatePost();
+	if (vars->type == REQ_DELETE)
+		return validateDelete();
+
+	setError(500, "Unknown request type");
+	return false;
+}
+
+
+bool Request::validateGet()
+{
+	if (!matchLocation())
+		return false;
+	if (!isMethodAllowed(Location::GET))
+	{
+		setError(405, "Method Not Allowed");
+		return false;
+	}
+	if (!buildResolvedPath())
+		return false;
+	if (!inspectResolvedPath())
+		return false;
+	return true;
+}
+
+bool Request::validatePost()
+{
+	if (!matchLocation())
+		return false;
+
+	if (!isMethodAllowed(Location::POST))
+	{
+		setError(405, "Method Not Allowed");
+		return false;
+	}
+
+	if (!buildResolvedPath())
+		return false;
+
+	if (!inspectResolvedPath())
+		return false;
+
+	return true;
+}
+
+bool Request::validateDelete()
+{
+	if (!matchLocation())
+		return false;
+	if (!isMethodAllowed(Location::DELETE))
+	{
+		setError(405, "Method Not Allowed");
+		return false;
+	}
+	if (!buildResolvedPath())
+		return false;
+	if (!inspectResolvedPath())
+		return false;
+	/* DELETE-specific rules */
+	if (_isDirectory)
+	{
+		setError(403, "Cannot delete directory");
+		return false;
+	}
+	if (!_isRegularFile)
+	{
+		setError(404, "Not Found");
+		return false;
+	}
+
+	return true;
 }
 
 void Request::sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader)
@@ -72,30 +163,13 @@ void Request::sendSimpleErrorResponse(int code, const std::string& reason, const
 void Request::handleGet()
 {
 	std::cout << "GET path: " << vars->requestPath << std::endl;
-	if (!matchLocation())
-		return handleError();
-
-	if (!isMethodAllowed(Location::GET))
-	{
-		setError(405, "Method Not Allowed");
-		return handleError();
-	}
-
-	if (!buildResolvedPath())
-		return handleError();
-
-	if (!inspectResolvedPath())
-		return handleError();
 
 	if (_isDirectory)
 		return handleGetDirectory();
-
 	if (_isCgi)
 		return handleGetCgi();
-
 	if (_isRegularFile)
 		return handleGetFile();
-
 	setError(404, "Not Found");
 	handleError();
 }
@@ -129,11 +203,12 @@ void Request::handleGetDirectory()
 	handleError();
 }
 
-bool Request::matchLocation()
+//finds the best matching location block (longest prefix match) for the request path.=bool Request::matchLocation()
 {
 	size_t i;
 	size_t bestLen = 0;
 	const Location* best = NULL;
+	//create path reference just for shorter code
 	const std::string& path = vars->requestPath;
 
 	if (_server == NULL)
@@ -141,7 +216,7 @@ bool Request::matchLocation()
 		setError(500, "Missing server");
 		return false;
 	}
-
+	//looping over all the locations in the config and checks for each of them
 	for (i = 0; i < _server->_locations.size(); i++)
 	{
 		const Location& loc = _server->_locations[i];
@@ -153,14 +228,17 @@ bool Request::matchLocation()
 		locPath = locPathC;
 		if (locPath.empty())
 			continue;
+		//checks if request starts with location
 		if (path.compare(0, locPath.size(), locPath) != 0)
 			continue;
 
+		//boundary check so /img will not match /images 
 		if (path.size() > locPath.size()
 			&& locPath[locPath.size() - 1] != '/'
 			&& path[locPath.size()] != '/')
 			continue;
 
+		//longest match wins - without this just the first / will match
 		if (locPath.size() > bestLen)
 		{
 			bestLen = locPath.size();
@@ -185,6 +263,8 @@ bool Request::isMethodAllowed(uchar method) const
 	return _location->isAllowedMethod(method) != 0;
 }
 
+/* It takes the request path (e.g. /images/logo.png) and turns it into a real file path on disk (e.g. /home/akosloff/images/logo.png).
+I will need to normalize, sanitize paths? */
 bool Request::buildResolvedPath()
 {
 	const char* rootC = NULL;
@@ -199,6 +279,7 @@ bool Request::buildResolvedPath()
 		return false;
 	}
 
+	//get root directory and validate
 	rootC = _location->_overrides.getRoot();
 	if (rootC == NULL || rootC[0] == '\0')
 		rootC = _server->_defaults.getRoot();
@@ -218,28 +299,33 @@ bool Request::buildResolvedPath()
 	root = rootC;
 	locPath = locPathC;
 
+	
+/* 	
+	this is extra check, but matchLocation() already did that
 	if (vars->requestPath.compare(0, locPath.size(), locPath) != 0)
 	{
 		setError(500, "Location path mismatch");
 		return false;
-	}
+	} */
 
+	//extract suffix
 	suffix = vars->requestPath.substr(locPath.size());
 
-	if (!root.empty() && root[root.size() - 1] == '/' &&
-		!suffix.empty() && suffix[0] == '/')
+	//first if avoids // second avoids missing /, else is defualt
+	if (!root.empty() && root[root.size() - 1] == '/' && !suffix.empty() && suffix[0] == '/')
 		_resolvedPath = root + suffix.substr(1);
-	else if ((!root.empty() && root[root.size() - 1] != '/') &&
-			(suffix.empty() || suffix[0] != '/'))
+	else if ((!root.empty() && root[root.size() - 1] != '/') && (suffix.empty() || suffix[0] != '/'))
 		_resolvedPath = root + "/" + suffix;
 	else
 		_resolvedPath = root + suffix;
 
+
+/* 	extra safety, maybe not needed
 	if (_resolvedPath.empty())
 	{
 		setError(500, "Resolved path is empty");
 		return false;
-	}
+	} */
 	std::cout << "Resolved path: " << _resolvedPath << std::endl;
 	return true;
 }
@@ -252,7 +338,10 @@ bool Request::inspectResolvedPath()
 
 	if (stat(_resolvedPath.c_str(), &st) == -1)
 	{
-		setError(404, "Not Found");
+		if (errno == EACCES)
+			setError(403, "Forbidden");
+		else
+			setError(404, "Not Found");
 		return false;
 	}
 
