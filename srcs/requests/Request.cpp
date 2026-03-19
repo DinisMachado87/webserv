@@ -48,8 +48,8 @@ void Request::respond()
 		default:
 			return sendSimpleErrorResponse(500, "Internal Server Error", "Unknown request type");
 	}
-}}
 }
+
 
 bool Request::validate()
 {
@@ -156,7 +156,7 @@ void Request::sendSimpleErrorResponse(int code, const std::string& reason, const
 	std::string body = "<html><body><h1>" + title.str() +
 		"</h1><p>" + message + "</p></body></html>";
 
-	sendResponse("HTTP/1.1 " + title.str() + "\r\n", body, "text/html", "close");
+	sendResponse("HTTP/1.1 " + title.str() + "\r\n", body, "text/html", "open");
 }
 
 
@@ -204,6 +204,7 @@ void Request::handleGetDirectory()
 }
 
 //finds the best matching location block (longest prefix match) for the request path.=bool Request::matchLocation()
+bool Request::matchLocation()
 {
 	size_t i;
 	size_t bestLen = 0;

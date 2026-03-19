@@ -40,7 +40,6 @@ std::string 			remoteHost; //domain name of the client sending the request, or {
 std::string				requestVersion; //http/1.1 or other
 std::string 			body;
 std::string 			host;
-std::string 			queryString;
 size_t     				maxBodySize;
 std::vector<HeaderField> headers; //the headers of the http request
 e_request_type			type;	
@@ -76,10 +75,11 @@ private:
 	void handlePost();
 	void handleDelete();
 	void handleError();
-	bool validate()
+	bool validate();
 	bool validateGet();
 	bool validatePost();
-{
+	bool validateDelete();
+
 
 	void sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader);
 	void sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);
