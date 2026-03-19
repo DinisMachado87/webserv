@@ -13,12 +13,15 @@
 #include <sstream>
 #include <cctype>
 
+class Server;
+
 class HttpParser
 {
 private:
 	std::string		_buffer;
 	std::string		_fullMessage;
 	reqVariables	_reqVariables;
+	const Server*	_server;
 
 private:
 	// explicit disables
@@ -36,6 +39,9 @@ private:
 	Request* 	parseRequestTarget(const std::string& target);
 	bool 		isValidHostValue(const std::string& s) const;
 	Request*	validateHeaders(void);
+	Request* 	eraseHeaderAndReturn(Request* err, size_t headerEnd);
+	Request*	clearBufferAndReturn(Request* err);
+	bool 		isValidHeaderName(const std::string& s) const;
 
 public:
 	// Constructors and destructors
@@ -43,7 +49,7 @@ public:
 	~HttpParser();
 
 	// public methods
-	Request*	parse(char *rawBuffer, size_t bytesRead, int clientFD);
+	Request*	parse(char *rawBuffer, size_t bytesRead, int clientFD, const Server& server);
 };
 
 #endif

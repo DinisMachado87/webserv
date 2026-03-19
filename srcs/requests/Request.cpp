@@ -1,10 +1,20 @@
 #include "Request.hpp"
+#include "../server/Server.hpp"
 #include <sys/socket.h>
 #include <sstream>
+#include <sys/stat.h>
+#include <fstream>
+#include <sstream>
 
-Request::Request(reqVariables *vars) :
+
+Request::Request(reqVariables *vars, const Server* server) :
 	vars(vars),
-	_location(NULL)
+	_location(NULL),
+	_server(server),
+	_resolvedPath(),
+	_isDirectory(false),
+	_isRegularFile(false),
+	_isCgi(false)
 {
 }
 
@@ -15,40 +25,400 @@ Request::~Request(void)
 
 void Request::respond()
 {
-	std::string statusLine = "HTTP/1.1 200 OK\r\n";
-	std::string message = "Hi from request";
-
-	if (vars->type == REQ_ERROR)
+	switch (vars->type)
 	{
-		std::ostringstream err;
-		err << vars->errorCode << " " << vars->errorMessage;
-		message = err.str();
+		case REQ_GET:
+			if (!validateGet())
+				return handleError();
+			return handleGet();
 
-		if (vars->errorCode == 400)
-			statusLine = "HTTP/1.1 400 Bad Request\r\n";
-		else if (vars->errorCode == 405)
-			statusLine = "HTTP/1.1 405 Method Not Allowed\r\n";
-		else if (vars->errorCode == 505)
-			statusLine = "HTTP/1.1 505 HTTP Version Not Supported\r\n";
-		else
-			statusLine = "HTTP/1.1 500 Internal Server Error\r\n";
+		case REQ_POST:
+			if (!validatePost())
+				return handleError();
+			return handlePost();
+
+		case REQ_DELETE:
+			if (!validateDelete())
+				return handleError();
+			return handleDelete();
+
+		case REQ_ERROR:
+			return handleError();
+
+		default:
+			return sendSimpleErrorResponse(500, "Internal Server Error", "Unknown request type");
+	}
+}}
+}
+
+bool Request::validate()
+{
+	if (vars->type == REQ_ERROR)
+		return false;
+	if (vars->type == REQ_GET)
+		return validateGet();
+	if (vars->type == REQ_POST)
+		return validatePost();
+	if (vars->type == REQ_DELETE)
+		return validateDelete();
+
+	setError(500, "Unknown request type");
+	return false;
+}
+
+
+bool Request::validateGet()
+{
+	if (!matchLocation())
+		return false;
+	if (!isMethodAllowed(Location::GET))
+	{
+		setError(405, "Method Not Allowed");
+		return false;
+	}
+	if (!buildResolvedPath())
+		return false;
+	if (!inspectResolvedPath())
+		return false;
+	return true;
+}
+
+bool Request::validatePost()
+{
+	if (!matchLocation())
+		return false;
+
+	if (!isMethodAllowed(Location::POST))
+	{
+		setError(405, "Method Not Allowed");
+		return false;
 	}
 
-	std::string body = "<html><body><h1>" + message + "</h1></body></html>";
+	if (!buildResolvedPath())
+		return false;
 
+	if (!inspectResolvedPath())
+		return false;
+
+	return true;
+}
+
+bool Request::validateDelete()
+{
+	if (!matchLocation())
+		return false;
+	if (!isMethodAllowed(Location::DELETE))
+	{
+		setError(405, "Method Not Allowed");
+		return false;
+	}
+	if (!buildResolvedPath())
+		return false;
+	if (!inspectResolvedPath())
+		return false;
+	/* DELETE-specific rules */
+	if (_isDirectory)
+	{
+		setError(403, "Cannot delete directory");
+		return false;
+	}
+	if (!_isRegularFile)
+	{
+		setError(404, "Not Found");
+		return false;
+	}
+
+	return true;
+}
+
+void Request::sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader)
+{
 	std::ostringstream oss;
 	oss << body.size();
 	std::string contentLength = oss.str();
 
 	std::string response =
 		statusLine +
-		"Content-Type: text/html\r\n"
-		"Content-Length: " + contentLength + "\r\n"
-		"Connection: close\r\n"
+		"Content-Type: " + contentType + "\r\n" +
+		"Content-Length: " + contentLength + "\r\n" +
+		"Connection: " + connectionHeader + "\r\n" +
 		"\r\n" +
 		body;
 
 	send(vars->clientFD, response.c_str(), response.size(), 0);
+}
+
+void Request::sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message)
+{
+	std::ostringstream title;
+	title << code << " " << reason;
+
+	std::string body = "<html><body><h1>" + title.str() +
+		"</h1><p>" + message + "</p></body></html>";
+
+	sendResponse("HTTP/1.1 " + title.str() + "\r\n", body, "text/html", "close");
+}
+
+
+void Request::handleGet()
+{
+	std::cout << "GET path: " << vars->requestPath << std::endl;
+
+	if (_isDirectory)
+		return handleGetDirectory();
+	if (_isCgi)
+		return handleGetCgi();
+	if (_isRegularFile)
+		return handleGetFile();
+	setError(404, "Not Found");
+	handleError();
+}
+
+
+
+void Request::handleGetFile()
+{
+	std::ifstream file(_resolvedPath.c_str(), std::ios::in | std::ios::binary);
+	std::ostringstream buffer;
+
+	if (!file)
+	{
+		setError(403, "Failed to open file");
+		return handleError();
+	}
+
+	buffer << file.rdbuf();
+	sendResponse("HTTP/1.1 200 OK\r\n", buffer.str(), "text/html", "close");
+}
+
+void Request::handleGetCgi()
+{
+	setError(501, "CGI handling not implemented yet");
+	handleError();
+}
+
+void Request::handleGetDirectory()
+{
+	setError(403, "Directory handling not implemented yet");
+	handleError();
+}
+
+//finds the best matching location block (longest prefix match) for the request path.=bool Request::matchLocation()
+{
+	size_t i;
+	size_t bestLen = 0;
+	const Location* best = NULL;
+	//create path reference just for shorter code
+	const std::string& path = vars->requestPath;
+
+	if (_server == NULL)
+	{
+		setError(500, "Missing server");
+		return false;
+	}
+	//looping over all the locations in the config and checks for each of them
+	for (i = 0; i < _server->_locations.size(); i++)
+	{
+		const Location& loc = _server->_locations[i];
+		const char* locPathC = loc.getPath();
+		std::string locPath;
+
+		if (locPathC == NULL)
+			continue;
+		locPath = locPathC;
+		if (locPath.empty())
+			continue;
+		//checks if request starts with location
+		if (path.compare(0, locPath.size(), locPath) != 0)
+			continue;
+
+		//boundary check so /img will not match /images 
+		if (path.size() > locPath.size()
+			&& locPath[locPath.size() - 1] != '/'
+			&& path[locPath.size()] != '/')
+			continue;
+
+		//longest match wins - without this just the first / will match
+		if (locPath.size() > bestLen)
+		{
+			bestLen = locPath.size();
+			best = &loc;
+		}
+	}
+
+	_location = best;
+	if (_location == NULL)
+	{
+		setError(404, "No matching location");
+		return false;
+	}
+	std::cout << "Matched location: " << _location->getPath() << std::endl;
+	return true;
+}
+
+bool Request::isMethodAllowed(uchar method) const
+{
+	if (_location == NULL)
+		return false;
+	return _location->isAllowedMethod(method) != 0;
+}
+
+/* It takes the request path (e.g. /images/logo.png) and turns it into a real file path on disk (e.g. /home/akosloff/images/logo.png).
+I will need to normalize, sanitize paths? */
+bool Request::buildResolvedPath()
+{
+	const char* rootC = NULL;
+	const char* locPathC = NULL;
+	std::string root;
+	std::string locPath;
+	std::string suffix;
+
+	if (_location == NULL || _server == NULL)
+	{
+		setError(500, "Path resolution failed");
+		return false;
+	}
+
+	//get root directory and validate
+	rootC = _location->_overrides.getRoot();
+	if (rootC == NULL || rootC[0] == '\0')
+		rootC = _server->_defaults.getRoot();
+	if (rootC == NULL || rootC[0] == '\0')
+	{
+		setError(500, "Missing root");
+		return false;
+	}
+
+	locPathC = _location->getPath();
+	if (locPathC == NULL || locPathC[0] == '\0')
+	{
+		setError(500, "Missing location path");
+		return false;
+	}
+
+	root = rootC;
+	locPath = locPathC;
+
+	
+/* 	
+	this is extra check, but matchLocation() already did that
+	if (vars->requestPath.compare(0, locPath.size(), locPath) != 0)
+	{
+		setError(500, "Location path mismatch");
+		return false;
+	} */
+
+	//extract suffix
+	suffix = vars->requestPath.substr(locPath.size());
+
+	//first if avoids // second avoids missing /, else is defualt
+	if (!root.empty() && root[root.size() - 1] == '/' && !suffix.empty() && suffix[0] == '/')
+		_resolvedPath = root + suffix.substr(1);
+	else if ((!root.empty() && root[root.size() - 1] != '/') && (suffix.empty() || suffix[0] != '/'))
+		_resolvedPath = root + "/" + suffix;
+	else
+		_resolvedPath = root + suffix;
+
+
+/* 	extra safety, maybe not needed
+	if (_resolvedPath.empty())
+	{
+		setError(500, "Resolved path is empty");
+		return false;
+	} */
+	std::cout << "Resolved path: " << _resolvedPath << std::endl;
+	return true;
+}
+
+
+
+bool Request::inspectResolvedPath()
+{
+	struct stat st;
+
+	if (stat(_resolvedPath.c_str(), &st) == -1)
+	{
+		if (errno == EACCES)
+			setError(403, "Forbidden");
+		else
+			setError(404, "Not Found");
+		return false;
+	}
+
+	_isDirectory = S_ISDIR(st.st_mode);
+	_isRegularFile = S_ISREG(st.st_mode);
+	_isCgi = (_isRegularFile && isCgiPath());
+
+
+	std::cout << "_isDirectory=" << _isDirectory << " _isRegularFile=" << _isRegularFile << " _isCgi=" << _isCgi << std::endl;
+
+	return true;
+}
+
+bool Request::isCgiPath() const
+{
+	size_t dot;
+	std::string ext;
+	const char* cgiExec;
+
+	if (_location == NULL)
+		return false;
+
+	dot = _resolvedPath.rfind('.');
+	if (dot == std::string::npos)
+		return false;
+
+	ext = _resolvedPath.substr(dot);
+	cgiExec = _location->findCgiPath(ext.c_str());
+	return (cgiExec != NULL);
+}
+
+void Request::handlePost()
+{
+	sendResponse("HTTP/1.1 200 OK\r\n",
+		"<html><body><h1>POST request received</h1></body></html>",
+		"text/html",
+		"close");
+}
+
+void Request::handleDelete()
+{
+	sendResponse("HTTP/1.1 200 OK\r\n",
+		"<html><body><h1>DELETE request received</h1></body></html>",
+		"text/html",
+		"close");
+}
+
+
+void Request::handleError()
+{
+	std::string reason = getReasonPhrase(vars->errorCode);
+	sendSimpleErrorResponse(vars->errorCode, reason, vars->errorMessage);
+}
+
+void Request::setError(int code, const std::string& message)
+{
+	vars->type = REQ_ERROR;
+	vars->errorCode = code;
+	vars->errorMessage = message;
+}
+
+std::string Request::getReasonPhrase(int code)
+{
+	switch (code)
+	{
+		case 400: return "Bad Request";
+		case 403: return "Forbidden";
+		case 404: return "Not Found";
+		case 405: return "Method Not Allowed";
+		case 411: return "Length Required";
+		case 413: return "Content Too Large";
+		case 431: return "Request Header Fields Too Large";
+		case 500: return "Internal Server Error";
+		case 501: return "Not Implemented";
+		case 505: return "HTTP Version Not Supported";
+		default:  return "Internal Server Error";
+	}
 }
 
 const reqVariables& Request::getVariables() const
@@ -56,12 +426,11 @@ const reqVariables& Request::getVariables() const
 	return *vars;
 }
 
-Location* Request::getLocation() const
+
+const Location* Request::getLocation() const
 {
 	return _location;
 }
-
-
 
 
 
