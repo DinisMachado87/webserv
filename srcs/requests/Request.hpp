@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:36 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/20 10:26:28 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/03/20 13:50:43 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,10 @@
 
 
 struct Location;
-class HttpRequest;
+//class HttpRequest;
 class Response;
 class GetResponse;
+class CGIResponse;
 
 struct HeaderField
 {
@@ -98,23 +99,28 @@ private:
 	//void handleDelete();
 	//void handleError();
 	//bool validate();
-	bool validateGet();
-	bool validatePost();
-	bool validateDelete();
+	bool 		validateGet();
+	bool 		validatePost();
+	bool 		validateDelete();
 
 
 	//void sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader);
 	//void sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);
 
-	bool matchLocation();
-	bool isMethodAllowed(unsigned char method) const;
-	bool buildResolvedPath();
-	bool inspectResolvedPath();
-	bool isCgiPath() const;
+	bool		matchLocation();
+	bool 		isMethodAllowed(unsigned char method) const;
+	bool 		buildResolvedPath();
+	bool 		inspectResolvedPath();
+	bool 		isCgiPath() const;
+	std::string buildResolvedPathFromUrl(const std::string& urlPath) const;
+	bool		resolveCgiScript();
 
-	void handleGetFile();
-	void handleGetDirectory();
-	void handleGetCgi();
+
+
+
+	//void 		handleGetFile();
+	//void 		handleGetDirectory();
+	//void 		handleGetCgi();
 
 	//std::string getReasonPhrase(int code);
 	void	setError(int code, const std::string& message);

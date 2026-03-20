@@ -12,6 +12,7 @@ class Connection: public ASocket {
 private:
 	std::string	_inBuff;
 	std::string	_outBuff;
+	HttpParser 	_parser;
 	
 	// Explicit disables
 	Connection(int fd, const Server& server, struct sockaddr_in serverAddr);

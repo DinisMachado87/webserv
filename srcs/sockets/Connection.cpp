@@ -25,11 +25,11 @@ Connection::~Connection() {}
 // Public Methods
 Connection*	Connection::handleIn() {
 	char	buffer[CHUNK_SIZE + 1];
-	size_t	bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
+	ssize_t	bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
 	if (bitesRead > 0)
 	{
 		Request *CurrentRequest = _parser.parse(buffer, bitesRead, _fd, _server);
-		if (CurrentRequest)
+		while (CurrentRequest)
 		{
 			Response* CurrentResponse = CurrentRequest->validateAndCreateResponse();
 			if (CurrentResponse)
@@ -38,6 +38,8 @@ Connection*	Connection::handleIn() {
 				delete CurrentResponse;
 			}
 			delete CurrentRequest;
+
+			CurrentRequest = _parser.parse(NULL, 0, _fd, _server);
 		}
 	}
 	return NULL;

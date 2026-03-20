@@ -1,5 +1,6 @@
 server {
     listen 8080;
+    listen 8081;
     root /home/akosloff/Projects/webserv/webserv_test;
     index index.html;
 

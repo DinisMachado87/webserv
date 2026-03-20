@@ -26,8 +26,6 @@ protected:
 	int					_fd;
 	const Server&		_server;
 	struct sockaddr_in	_serverAddr;
-	HttpParser 			_parser;
-	Request*			_request;
 	// Constructors and destructors
 	ASocket(int fd, const Server& server, struct sockaddr_in serverAddr);
 	// Error Handeling

@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:46 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/20 10:26:52 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/03/20 13:48:16 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "../server/Server.hpp"
 #include "../responses/Response.hpp"
 #include "../responses/GetResponse.hpp"
+#include "../responses/CGIResponse.hpp"
 #include <sys/socket.h>
 #include <sstream>
 #include <sys/stat.h>
@@ -40,23 +41,52 @@ Request::~Request(void)
 Response* Request::validateAndCreateResponse()
 {
 	std::cout << "validate and create response\n";
+
 	if (vars == NULL || _server == NULL)
 	{
-		setError(500, "Internal Server Error");
 		return NULL;
 	}
+
+	if (vars->type == REQ_ERROR)
+	{
+		std::ostringstream oss;
+		oss << "<html><body><h1>Error "
+			<< vars->errorCode
+			<< "</h1><p>"
+			<< vars->errorMessage
+			<< "</p></body></html>";
+		vars->body = oss.str();
+		return new GetResponse(const_cast<Location*>(_location), vars);
+	}
+
 	if (vars->type == REQ_GET)
 	{
 		if (!validateGet())
-			return NULL;
+		{
+			std::ostringstream oss;
+			oss << "<html><body><h1>Error "
+				<< vars->errorCode
+				<< "</h1><p>"
+				<< vars->errorMessage
+				<< "</p></body></html>";
+			vars->body = oss.str();
+			return new GetResponse(const_cast<Location*>(_location), vars);
+		}
+		if (vars->isCgi)
+			return new CGIResponse(const_cast<Location*>(_location), vars);
 		return new GetResponse(const_cast<Location*>(_location), vars);
 	}
+
 	setError(500, "Only GET is wired to Response for now");
-	return NULL;
+	std::ostringstream oss;
+	oss << "<html><body><h1>Error "
+		<< vars->errorCode
+		<< "</h1><p>"
+		<< vars->errorMessage
+		<< "</p></body></html>";
+	vars->body = oss.str();
+	return new GetResponse(const_cast<Location*>(_location), vars);
 }
-
-
-
 
 
 bool Request::validateGet()
@@ -70,6 +100,10 @@ bool Request::validateGet()
 	}
 	if (!buildResolvedPath())
 		return false;
+
+	if (resolveCgiScript())
+		return true;
+
 	if (!inspectResolvedPath())
 		return false;
 	return true;
@@ -88,6 +122,9 @@ bool Request::validatePost()
 
 	if (!buildResolvedPath())
 		return false;
+
+	if (resolveCgiScript())
+		return true;
 
 	if (!inspectResolvedPath())
 		return false;
@@ -188,8 +225,122 @@ bool Request::isMethodAllowed(uchar method) const
 	return _location->isAllowedMethod(method) != 0;
 }
 
+
+bool Request::buildResolvedPath()
+{
+	if (vars->requestPath.find("..") != std::string::npos)
+	{
+		setError(403, "Forbidden path");
+		return false;
+	}
+	vars->resolvedPath = buildResolvedPathFromUrl(vars->requestPath);
+	if (vars->resolvedPath.empty())
+	{
+		setError(500, "Path resolution failed");
+		return false;
+	}
+	std::cout << "Resolved path: " << vars->resolvedPath << std::endl;
+	return true;
+}
+
+std::string Request::buildResolvedPathFromUrl(const std::string& urlPath) const
+{
+	const char* rootC = NULL;
+	const char* locPathC = NULL;
+	std::string root;
+	std::string locPath;
+	std::string suffix;
+	std::string result;
+
+	if (_location == NULL || _server == NULL)
+		return "";
+
+	//get root directory and validate
+	rootC = _location->_overrides.getRoot();
+	if (rootC == NULL || rootC[0] == '\0')
+		rootC = _server->_defaults.getRoot();
+	if (rootC == NULL || rootC[0] == '\0')
+		return "";
+
+	locPathC = _location->getPath();
+	if (locPathC == NULL || locPathC[0] == '\0')
+		return "";
+
+	root = rootC;
+	locPath = locPathC;
+
+	if (urlPath.compare(0, locPath.size(), locPath) != 0)
+		return "";
+
+	//extract suffix
+	suffix = urlPath.substr(locPath.size());
+
+	//first if avoids // second avoids missing /, else is defualt
+	if (!root.empty() && root[root.size() - 1] == '/'
+		&& !suffix.empty() && suffix[0] == '/')
+		result = root + suffix.substr(1);
+	else if (!root.empty() && root[root.size() - 1] != '/'
+		&& (suffix.empty() || suffix[0] != '/'))
+		result = root + "/" + suffix;
+	else
+		result = root + suffix;
+
+	return result;
+}
+
+bool Request::resolveCgiScript()
+{
+	std::string candidateUrl;
+	std::string candidateResolved;
+	std::string ext;
+	size_t slashPos;
+	size_t dotPos;
+	struct stat st;
+	const char* cgiExec;
+
+	if (_location == NULL || _server == NULL)
+		return false;
+
+	candidateUrl = vars->requestPath;
+
+	while (!candidateUrl.empty())
+	{
+		candidateResolved = buildResolvedPathFromUrl(candidateUrl);
+		if (!candidateResolved.empty()
+			&& stat(candidateResolved.c_str(), &st) == 0
+			&& S_ISREG(st.st_mode))
+		{
+			dotPos = candidateResolved.rfind('.');
+			if (dotPos != std::string::npos)
+			{
+				ext = candidateResolved.substr(dotPos);
+				cgiExec = _location->findCgiPath(ext.c_str());
+				if (cgiExec != NULL)
+				{
+					vars->resolvedPath = candidateResolved;
+					vars->isDirectory = false;
+					vars->isRegularFile = true;
+					vars->isCgi = true;
+					vars->scriptName = candidateUrl;
+					if (vars->requestPath.size() > candidateUrl.size())
+						vars->pathInfo = vars->requestPath.substr(candidateUrl.size());
+					else
+						vars->pathInfo.clear();
+					return true;
+				}
+			}
+		}
+
+		slashPos = candidateUrl.rfind('/');
+		if (slashPos == std::string::npos || slashPos == 0)
+			break;
+		candidateUrl.erase(slashPos);
+	}
+	return false;
+}
+
 /* It takes the request path (e.g. /images/logo.png) and turns it into a real file path on disk (e.g. /home/akosloff/images/logo.png).
-I will need to normalize, sanitize paths? */
+I will need to normalize, sanitize paths?
 bool Request::buildResolvedPath()
 {
 	const char* rootC = NULL;
@@ -261,7 +412,7 @@ bool Request::buildResolvedPath()
 	std::cout << "scriptName: " << vars->scriptName << std::endl;
 	std::cout << "pathInfo: " << vars->pathInfo << std::endl;
 	return true;
-}
+} */
 
 
 
