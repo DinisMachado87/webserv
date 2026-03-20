@@ -1,3 +1,17 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Request.hpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/03/20 08:41:36 by akosloff          #+#    #+#             */
+/*   Updated: 2026/03/20 10:26:28 by akosloff         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+
+
 #pragma once
 
 #include <string>
@@ -6,6 +20,8 @@
 
 struct Location;
 class HttpRequest;
+class Response;
+class GetResponse;
 
 struct HeaderField
 {
@@ -42,6 +58,10 @@ std::string 			remoteHost; //domain name of the client sending the request, or {
 std::string				requestVersion; //http/1.1 or other
 std::string 			body;
 std::string 			host;
+std::string 			resolvedPath;
+bool        			isDirectory;
+bool        			isRegularFile;
+bool       				isCgi;
 size_t     				maxBodySize;
 std::vector<HeaderField> headers; //the headers of the http request
 e_request_type			type;
@@ -53,7 +73,7 @@ public:
 	Request(reqVariables *vars, const Server* server);
 	~Request(void);
 
-	void respond();
+	Response* 			validateAndCreateResponse();
 	const reqVariables&	getVariables() const;
 	const std::string&	getBody() const;
 	int					getClientFD() const;
@@ -63,30 +83,29 @@ private:
 	reqVariables	*vars;
 	const Location*	_location;
 	const Server*	_server;
-	std::string		_resolvedPath;
+/* 	std::string		_resolvedPath; // do I need this? it's not in reqVariables already?
 	bool			_isDirectory;
 	bool			_isRegularFile;
-	bool			_isCgi;
+	bool			_isCgi; */
 
 private:
 	Request(void);
 	Request(const Request &other);
 	Request &	operator=(const Request &other);
 
-	void handleGet();
-	void handlePost();
-	void handleDelete();
-	void handleError();
-	bool validate();
+	//void handleGet();
+	//void handlePost();
+	//void handleDelete();
+	//void handleError();
+	//bool validate();
 	bool validateGet();
 	bool validatePost();
 	bool validateDelete();
 
 
-	void sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader);
-	void sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);
+	//void sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader);
+	//void sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message);
 
-	//helper functions for handleGet()
 	bool matchLocation();
 	bool isMethodAllowed(unsigned char method) const;
 	bool buildResolvedPath();
@@ -97,7 +116,7 @@ private:
 	void handleGetDirectory();
 	void handleGetCgi();
 
-	std::string getReasonPhrase(int code);
+	//std::string getReasonPhrase(int code);
 	void	setError(int code, const std::string& message);
 
 };

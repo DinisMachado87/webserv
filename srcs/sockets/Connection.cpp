@@ -1,6 +1,7 @@
 #include "Connection.hpp"
 #include "Server.hpp"
 #include "webServ.hpp"
+#include "../requests/Request.hpp"
 #include <asm-generic/socket.h>
 #include <cerrno>
 #include <cstring>
@@ -26,10 +27,19 @@ Connection*	Connection::handleIn() {
 	char	buffer[CHUNK_SIZE + 1];
 	size_t	bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
 	if (bitesRead > 0)
-		_request = _parser.parse(buffer, bitesRead, _fd, _server);
-	if (_request)
-		_request->respond();
-	
+	{
+		Request *CurrentRequest = _parser.parse(buffer, bitesRead, _fd, _server);
+		if (CurrentRequest)
+		{
+			Response* CurrentResponse = CurrentRequest->validateAndCreateResponse();
+			if (CurrentResponse)
+			{
+				CurrentResponse->sendResponse(_fd);
+				delete CurrentResponse;
+			}
+			delete CurrentRequest;
+		}
+	}
 	return NULL;
 };
 

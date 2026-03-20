@@ -1,5 +1,19 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Request.cpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/03/20 08:41:46 by akosloff          #+#    #+#             */
+/*   Updated: 2026/03/20 10:26:52 by akosloff         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Request.hpp"
 #include "../server/Server.hpp"
+#include "../responses/Response.hpp"
+#include "../responses/GetResponse.hpp"
 #include <sys/socket.h>
 #include <sstream>
 #include <sys/stat.h>
@@ -10,11 +24,11 @@
 Request::Request(reqVariables *vars, const Server* server) :
 	vars(vars),
 	_location(NULL),
-	_server(server),
-	_resolvedPath(),
+	_server(server)
+/* 	_resolvedPath(),
 	_isDirectory(false),
 	_isRegularFile(false),
-	_isCgi(false)
+	_isCgi(false) */
 {
 }
 
@@ -23,48 +37,26 @@ Request::~Request(void)
 	delete vars;
 }
 
-void Request::respond()
+Response* Request::validateAndCreateResponse()
 {
-	switch (vars->type)
+	std::cout << "validate and create response\n";
+	if (vars == NULL || _server == NULL)
 	{
-		case REQ_GET:
-			if (!validateGet())
-				return handleError();
-			return handleGet();
-
-		case REQ_POST:
-			if (!validatePost())
-				return handleError();
-			return handlePost();
-
-		case REQ_DELETE:
-			if (!validateDelete())
-				return handleError();
-			return handleDelete();
-
-		case REQ_ERROR:
-			return handleError();
-
-		default:
-			return sendSimpleErrorResponse(500, "Internal Server Error", "Unknown request type");
+		setError(500, "Internal Server Error");
+		return NULL;
 	}
-}
-
-
-bool Request::validate()
-{
-	if (vars->type == REQ_ERROR)
-		return false;
 	if (vars->type == REQ_GET)
-		return validateGet();
-	if (vars->type == REQ_POST)
-		return validatePost();
-	if (vars->type == REQ_DELETE)
-		return validateDelete();
-
-	setError(500, "Unknown request type");
-	return false;
+	{
+		if (!validateGet())
+			return NULL;
+		return new GetResponse(const_cast<Location*>(_location), vars);
+	}
+	setError(500, "Only GET is wired to Response for now");
+	return NULL;
 }
+
+
+
 
 
 bool Request::validateGet()
@@ -117,12 +109,12 @@ bool Request::validateDelete()
 	if (!inspectResolvedPath())
 		return false;
 	/* DELETE-specific rules */
-	if (_isDirectory)
+	if (vars->isDirectory)
 	{
 		setError(403, "Cannot delete directory");
 		return false;
 	}
-	if (!_isRegularFile)
+	if (!vars->isRegularFile)
 	{
 		setError(404, "Not Found");
 		return false;
@@ -131,77 +123,9 @@ bool Request::validateDelete()
 	return true;
 }
 
-void Request::sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader)
-{
-	std::ostringstream oss;
-	oss << body.size();
-	std::string contentLength = oss.str();
-
-	std::string response =
-		statusLine +
-		"Content-Type: " + contentType + "\r\n" +
-		"Content-Length: " + contentLength + "\r\n" +
-		"Connection: " + connectionHeader + "\r\n" +
-		"\r\n" +
-		body;
-
-	send(vars->clientFD, response.c_str(), response.size(), 0);
-}
-
-void Request::sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message)
-{
-	std::ostringstream title;
-	title << code << " " << reason;
-
-	std::string body = "<html><body><h1>" + title.str() +
-		"</h1><p>" + message + "</p></body></html>";
-
-	sendResponse("HTTP/1.1 " + title.str() + "\r\n", body, "text/html", "open");
-}
-
-
-void Request::handleGet()
-{
-	std::cout << "GET path: " << vars->requestPath << std::endl;
-
-	if (_isDirectory)
-		return handleGetDirectory();
-	if (_isCgi)
-		return handleGetCgi();
-	if (_isRegularFile)
-		return handleGetFile();
-	setError(404, "Not Found");
-	handleError();
-}
 
 
 
-void Request::handleGetFile()
-{
-	std::ifstream file(_resolvedPath.c_str(), std::ios::in | std::ios::binary);
-	std::ostringstream buffer;
-
-	if (!file)
-	{
-		setError(403, "Failed to open file");
-		return handleError();
-	}
-
-	buffer << file.rdbuf();
-	sendResponse("HTTP/1.1 200 OK\r\n", buffer.str(), "text/html", "close");
-}
-
-void Request::handleGetCgi()
-{
-	setError(501, "CGI handling not implemented yet");
-	handleError();
-}
-
-void Request::handleGetDirectory()
-{
-	setError(403, "Directory handling not implemented yet");
-	handleError();
-}
 
 //finds the best matching location block (longest prefix match) for the request path.=bool Request::matchLocation()
 bool Request::matchLocation()
@@ -273,12 +197,21 @@ bool Request::buildResolvedPath()
 	std::string root;
 	std::string locPath;
 	std::string suffix;
+	std::string originalPath;
+	size_t cgiPos;
+	size_t endOfScript;
+
 
 	if (_location == NULL || _server == NULL)
 	{
 		setError(500, "Path resolution failed");
 		return false;
 	}
+	// keep original URL path before overwriting requestPath with filesystem path
+	originalPath = vars->requestPath;
+	vars->scriptName.clear();
+	vars->pathInfo.clear();
+	vars->resolvedPath.clear();
 
 	//get root directory and validate
 	rootC = _location->_overrides.getRoot();
@@ -300,34 +233,33 @@ bool Request::buildResolvedPath()
 	root = rootC;
 	locPath = locPathC;
 
-	
-/* 	
-	this is extra check, but matchLocation() already did that
-	if (vars->requestPath.compare(0, locPath.size(), locPath) != 0)
-	{
-		setError(500, "Location path mismatch");
-		return false;
-	} */
 
 	//extract suffix
-	suffix = vars->requestPath.substr(locPath.size());
-
+	suffix = originalPath.substr(locPath.size());
+	
 	//first if avoids // second avoids missing /, else is defualt
 	if (!root.empty() && root[root.size() - 1] == '/' && !suffix.empty() && suffix[0] == '/')
-		_resolvedPath = root + suffix.substr(1);
+		vars->resolvedPath = root + suffix.substr(1);
 	else if ((!root.empty() && root[root.size() - 1] != '/') && (suffix.empty() || suffix[0] != '/'))
-		_resolvedPath = root + "/" + suffix;
+		vars->resolvedPath = root + "/" + suffix;
 	else
-		_resolvedPath = root + suffix;
+		vars->resolvedPath = root + suffix;
 
-
-/* 	extra safety, maybe not needed
-	if (_resolvedPath.empty())
+	// fill CGI-related variables from original URL path
+	cgiPos = originalPath.find(".cgi");
+	if (cgiPos != std::string::npos)
 	{
-		setError(500, "Resolved path is empty");
-		return false;
-	} */
-	std::cout << "Resolved path: " << _resolvedPath << std::endl;
+		endOfScript = cgiPos + 4;
+		vars->scriptName = originalPath.substr(0, endOfScript);
+		if (endOfScript < originalPath.size())
+			vars->pathInfo = originalPath.substr(endOfScript);
+	}
+
+	// temporary compatibility bridge: Response currently reads requestPath as file path
+	vars->requestPath = vars->resolvedPath;
+	std::cout << "Resolved path: " << vars->resolvedPath << std::endl;
+	std::cout << "scriptName: " << vars->scriptName << std::endl;
+	std::cout << "pathInfo: " << vars->pathInfo << std::endl;
 	return true;
 }
 
@@ -337,7 +269,7 @@ bool Request::inspectResolvedPath()
 {
 	struct stat st;
 
-	if (stat(_resolvedPath.c_str(), &st) == -1)
+	if (stat(vars->resolvedPath.c_str(), &st) == -1)
 	{
 		if (errno == EACCES)
 			setError(403, "Forbidden");
@@ -346,12 +278,12 @@ bool Request::inspectResolvedPath()
 		return false;
 	}
 
-	_isDirectory = S_ISDIR(st.st_mode);
-	_isRegularFile = S_ISREG(st.st_mode);
-	_isCgi = (_isRegularFile && isCgiPath());
+	vars->isDirectory = S_ISDIR(st.st_mode);
+	vars->isRegularFile = S_ISREG(st.st_mode);
+	vars->isCgi = (vars->isRegularFile && isCgiPath());
 
 
-	std::cout << "_isDirectory=" << _isDirectory << " _isRegularFile=" << _isRegularFile << " _isCgi=" << _isCgi << std::endl;
+	std::cout << "_isDirectory=" << vars->isDirectory << " _isRegularFile=" << vars->isRegularFile << " _isCgi=" << vars->isCgi << std::endl;
 
 	return true;
 }
@@ -365,16 +297,61 @@ bool Request::isCgiPath() const
 	if (_location == NULL)
 		return false;
 
-	dot = _resolvedPath.rfind('.');
+	dot = vars->resolvedPath.rfind('.');
 	if (dot == std::string::npos)
 		return false;
 
-	ext = _resolvedPath.substr(dot);
+	ext = vars->resolvedPath.substr(dot);
 	cgiExec = _location->findCgiPath(ext.c_str());
 	return (cgiExec != NULL);
 }
 
-void Request::handlePost()
+
+
+void Request::setError(int code, const std::string& message)
+{
+	vars->type = REQ_ERROR;
+	vars->errorCode = code;
+	vars->errorMessage = message;
+}
+
+
+
+const reqVariables& Request::getVariables() const
+{
+	return *vars;
+}
+
+
+const Location* Request::getLocation() const
+{
+	return _location;
+}
+
+
+int Request::getClientFD() const
+{
+	return vars->clientFD;
+}
+
+
+/* bool Request::validate()
+{
+	if (vars->type == REQ_ERROR)
+		return false;
+	if (vars->type == REQ_GET)
+		return validateGet();
+	if (vars->type == REQ_POST)
+		return validatePost();
+	if (vars->type == REQ_DELETE)
+		return validateDelete();
+
+	setError(500, "Unknown request type");
+	return false;
+} */
+
+
+/* void Request::handlePost()
 {
 	sendResponse("HTTP/1.1 200 OK\r\n",
 		"<html><body><h1>POST request received</h1></body></html>",
@@ -395,16 +372,84 @@ void Request::handleError()
 {
 	std::string reason = getReasonPhrase(vars->errorCode);
 	sendSimpleErrorResponse(vars->errorCode, reason, vars->errorMessage);
-}
+} */
 
-void Request::setError(int code, const std::string& message)
+/* 
+void Request::sendSimpleErrorResponse(int code, const std::string& reason, const std::string& message)
 {
-	vars->type = REQ_ERROR;
-	vars->errorCode = code;
-	vars->errorMessage = message;
+	std::ostringstream title;
+	title << code << " " << reason;
+
+	std::string body = "<html><body><h1>" + title.str() +
+		"</h1><p>" + message + "</p></body></html>";
+
+	sendResponse("HTTP/1.1 " + title.str() + "\r\n", body, "text/html", "open");
 }
 
-std::string Request::getReasonPhrase(int code)
+
+void Request::handleGet()
+{
+	std::cout << "GET path: " << vars->requestPath << std::endl;
+
+	if (_isDirectory)
+		return handleGetDirectory();
+	if (_isCgi)
+		return handleGetCgi();
+	if (_isRegularFile)
+		return handleGetFile();
+	setError(404, "Not Found");
+	handleError();
+}
+
+
+
+void Request::handleGetFile()
+{
+	std::ifstream file(_resolvedPath.c_str(), std::ios::in | std::ios::binary);
+	std::ostringstream buffer;
+
+	if (!file)
+	{
+		setError(403, "Failed to open file");
+		return handleError();
+	}
+
+	buffer << file.rdbuf();
+	sendResponse("HTTP/1.1 200 OK\r\n", buffer.str(), "text/html", "close");
+}
+
+void Request::handleGetCgi()
+{
+	setError(501, "CGI handling not implemented yet");
+	handleError();
+}
+
+void Request::handleGetDirectory()
+{
+	setError(403, "Directory handling not implemented yet");
+	handleError();
+} */
+
+
+/* void Request::sendResponse(const std::string& statusLine, const std::string& body, const std::string& contentType, const std::string& connectionHeader)
+{
+	std::ostringstream oss;
+	oss << body.size();
+	std::string contentLength = oss.str();
+
+	std::string response =
+		statusLine +
+		"Content-Type: " + contentType + "\r\n" +
+		"Content-Length: " + contentLength + "\r\n" +
+		"Connection: " + connectionHeader + "\r\n" +
+		"\r\n" +
+		body;
+
+	send(vars->clientFD, response.c_str(), response.size(), 0);
+} */
+
+
+/* std::string Request::getReasonPhrase(int code)
 {
 	switch (code)
 	{
@@ -420,18 +465,4 @@ std::string Request::getReasonPhrase(int code)
 		case 505: return "HTTP Version Not Supported";
 		default:  return "Internal Server Error";
 	}
-}
-
-const reqVariables& Request::getVariables() const
-{
-	return *vars;
-}
-
-
-const Location* Request::getLocation() const
-{
-	return _location;
-}
-
-
-
+} */

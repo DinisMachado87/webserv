@@ -7,9 +7,12 @@
 #include <unistd.h>
 #include <stdint.h>
 #include "../parser/HttpParser.hpp"
+#include "../responses/Response.hpp"
 
 class Server;
 class Connection;
+class Respone;
+class GetRespone;
 
 class ASocket {
 private:

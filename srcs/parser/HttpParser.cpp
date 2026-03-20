@@ -1,3 +1,16 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpParser.cpp                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/03/20 08:41:23 by akosloff          #+#    #+#             */
+/*   Updated: 2026/03/20 10:24:13 by akosloff         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+
 #include "HttpParser.hpp"
 #include "../server/Server.hpp"
 
@@ -28,6 +41,12 @@ void HttpParser::resetReqVariables(int clientFD)
 	_reqVariables.hasContentLength = false;
 	_reqVariables.clearBufferOnError = false;
 	_fullMessage.clear();
+	_reqVariables.resolvedPath.clear();
+	_reqVariables.scriptName.clear();
+	_reqVariables.pathInfo.clear();
+	_reqVariables.isDirectory = false;
+	_reqVariables.isRegularFile = false;
+	_reqVariables.isCgi = false;
 }
 /* Parse one full HTTP request if enough bytes are already in _buffer.
 Returns:
