@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/26 16:40:12 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/17 14:08:41 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 17:57:30 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,11 +41,10 @@ char*	SERVER_SOFTWARE;	//^^Name and version of server software
 class	CGIResponse : public Response
 {
 public:
-	CGIResponse(Location* loc, reqVariables* vars, std::string* requestBody);
+	CGIResponse(Location* loc, reqVariables* vars);
 	~CGIResponse(void);
-	int				sendResponse(int clientFD);
+	int				sendResponse(const int& clientFD);
 	std::string*	getCGIoutput(void);
-	void			setRequestBody(std::string* body);
 
 
 

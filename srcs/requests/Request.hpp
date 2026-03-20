@@ -27,12 +27,14 @@ class Server;
 typedef	struct	reqVariables {		//{defaults}
 std::string				method;			//GET / POST / PUT / DELETE etc
 bool 					hasContentLength;
-bool 					clearBufferOnError; 
+bool 					clearBufferOnError;
 size_t					contentLength;	//length of message body - taken from header or manually calculated if chunked {-1}
 int						clientFD;
 int						errorCode; //400 or 405 or etc
 std::string				errorMessage; //actual message to print
 std::string				requestPath;	//e.g. URL=example.com/cgi-bin/hello.cgi/user/admin {NULL} (parser needs to check for cgi-bin)
+std::string				scriptName;		//e.g. URL=example.com/cgi-bin/hello.cgi
+std::string				pathInfo;		//e.g. /user/admin
 std::string 			contentType; //media type of message body - from header {NULL}
 std::string 			queryString; //information for the CGI script to affect the return value - URL after '?' {NULL} e.g. URL=example.com/cgi-bin/hello.cgi/user/admin?query=date QUERY_STRING=query=date
 std::string 			remoteAddr;	//network address of client sending the request (ipv4 or ipv6) {NULL}
@@ -42,7 +44,7 @@ std::string 			body;
 std::string 			host;
 size_t     				maxBodySize;
 std::vector<HeaderField> headers; //the headers of the http request
-e_request_type			type;	
+e_request_type			type;
 }	reqVariables;
 
 class	Request
@@ -62,7 +64,7 @@ private:
 	const Location*	_location;
 	const Server*	_server;
 	std::string		_resolvedPath;
-	bool			_isDirectory;	
+	bool			_isDirectory;
 	bool			_isRegularFile;
 	bool			_isCgi;
 

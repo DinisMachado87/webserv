@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/19 15:04:39 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/19 18:23:06 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 
 
-CGIResponse::CGIResponse(Location* loc, reqVariables* vars, std::string* requestBody) : Response(loc, vars, requestBody)
+CGIResponse::CGIResponse(Location* loc, reqVariables* vars) : Response(loc, vars)
 {
 
 }
@@ -38,7 +38,7 @@ int	CGIResponse::createHeader(void)
 	return 0;
 }
 
-int	CGIResponse::sendResponse(int clientFD)
+int	CGIResponse::sendResponse(const int &clientFD)
 {
 	if (runCGI() != 0)
 		return (1);
@@ -64,7 +64,9 @@ int	CGIResponse::childProcess(int pipeP2C[2], int pipeC2P[2])
 	close(pipeC2P[1]);
 	close(pipeP2C[0]);
 	execve (fileName, argv, environ);
+	(void)argv;
 	perror("child execution");
+	// write(1, "lalala", 6);
 	exit (1);
 }
 
@@ -87,7 +89,7 @@ int		CGIResponse::runCGI(void)
 		this->childProcess(pipeP2C, pipeC2P);
 	close(pipeP2C[0]);
 	close(pipeC2P[1]);
-	write(pipeP2C[1], this->_requestBody->c_str(), this->_requestBody->size());
+	write(pipeP2C[1], this->_requestVars->body.c_str(), this->_requestVars->body.size());
 	close(pipeP2C[1]);
 	int	status = 0;
 	waitpid(pid, &status, 0);
@@ -108,7 +110,7 @@ int		CGIResponse::runCGI(void)
 		this->_responseBody.resize(size + chunk);
 	}
 	if (res != -1)
-		this->_responseBody.resize(oldSize + res + 2);
+		this->_responseBody.resize(oldSize + res);
 	printf("[written: %lu] [status: %d]\n\n", this->_responseBody.size(), status);
 	close(pipeC2P[0]);
 	return (0);
@@ -117,11 +119,6 @@ int		CGIResponse::runCGI(void)
 std::string	*CGIResponse::getCGIoutput(void)
 {
 	return (&this->_responseBody);
-}
-
-void	CGIResponse::setRequestBody(std::string* body)
-{
-	this->_requestBody = body;
 }
 
 void	CGIResponse::setEnvironment(void)
@@ -140,8 +137,8 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("CONTENT_LENGTH", "", 1);
 
-	if (!this->_requestVars->CONTENT_TYPE.empty())
-		setenv("CONTENT_TYPE", this->_requestVars->CONTENT_TYPE.c_str(), 1);
+	if (!this->_requestVars->contentType.empty())
+		setenv("CONTENT_TYPE", this->_requestVars->contentType.c_str(), 1);
 	// else
 	// 	setenv("CONTENT_TYPE", "", 1);
 
@@ -164,13 +161,13 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("QUERY_STRING", "NULL", 1);
 
-	if (!this->_requestVars->REMOTE_ADDR.empty())
-		setenv("REMOTE_ADDR", this->_requestVars->REMOTE_ADDR.c_str(), 1);
+	if (!this->_requestVars->remoteAddr.empty())
+		setenv("REMOTE_ADDR", this->_requestVars->remoteAddr.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_ADDR", "NULL", 1);
 
-	if (!this->_requestVars->REMOTE_HOST.empty())
-		setenv("REMOTE_HOST", this->_requestVars->REMOTE_HOST.c_str(), 1);
+	if (!this->_requestVars->remoteHost.empty())
+		setenv("REMOTE_HOST", this->_requestVars->remoteHost.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_HOST", "NULL", 1);
 
@@ -185,16 +182,16 @@ void	CGIResponse::setEnvironment(void)
 	// 	setenv("REMOTE_USER", "NULL", 1);
 
 	switch (this->_requestVars->type) {
-		case GET:
+		case REQ_GET:
 			setenv("REQUEST_METHOD", "GET", 1);
 			break ;
-		case POST:
+		case REQ_POST:
 			setenv("REQUEST_METHOD", "POST", 1);
 			break ;
-		case DELETE:
+		case REQ_DELETE:
 			setenv("REQUEST_METHOD", "DELETE", 1);
 			break ;
-		case ERROR:
+		case REQ_ERROR:
 			break ;
 	}
 	// else
@@ -211,9 +208,9 @@ void	CGIResponse::setEnvironment(void)
 	// 	setenv("SERVER_NAME", "NULL", 1);
 
 	// if (this->_metaVs.SERVER_PORT)
-	char	buf[32];
-	::snprintf(buf, 32, "%d", this->_requestVars->port);
-	setenv("SERVER_PORT", buf, 1);
+	// char	buf[32];
+	// ::snprintf(buf, 32, "%d", this->_requestVars->port);
+	// setenv("SERVER_PORT", buf, 1);
 	// else
 	// 	setenv("SERVER_PORT", "NULL", 1);
 
