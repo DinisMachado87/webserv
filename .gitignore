@@ -2,3 +2,4 @@ documentation
 Session.vim
 .cache
 compile_commands.json
+.clang-format

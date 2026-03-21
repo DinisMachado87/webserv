@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 // Public constructors and destructors
-Token::Token(const unsigned char* table, std::string& parsingString):
+Token::Token(const unsigned char *table, std::string &parsingString) :
 	_isDelimiter(table),
 	_strV(StrView(parsingString)),
 	_type(0),
@@ -18,10 +18,10 @@ Token::Token(const unsigned char* table, std::string& parsingString):
 	_pendingQuote(false),
 	_strBuffSize(0) {}
 
-Token::~Token() { }
+Token::~Token() {}
 
 // Error Handling
-std::runtime_error Token::parsingErr(const char* expected) const {
+std::runtime_error Token::parsingErr(const char *expected) const {
 	std::ostringstream oss;
 	oss << "Error Parsing config: "
 		<< "Expected \"" << expected << "\" "
@@ -32,7 +32,7 @@ std::runtime_error Token::parsingErr(const char* expected) const {
 }
 
 // Public Methods
-const unsigned char* Token::configDelimiters() {
+const uchar *Token::configDelimiters() {
 	static unsigned char isDelimiter[256] = {0};
 	isDelimiter[' '] = SPACE;
 	isDelimiter['\t'] = SPACE;
@@ -49,81 +49,97 @@ const unsigned char* Token::configDelimiters() {
 
 void Token::extractQuote(const char *str) {
 	str++;
-	
+
 	while (1) {
 		_type = _isDelimiter[(unsigned char)(*str)];
 		switch (_type) {
-			case NEWLINE :
-			case ENDOFILE :
-				throw std::runtime_error("Error tokenizer: unclosed quote");
-			case EXCAPE :
+		case NEWLINE:
+		case ENDOFILE:
+			throw std::runtime_error("Error tokenizer: unclosed quote");
+		case EXCAPE:
+			str++;
+			if (*str)
 				str++;
-				if (*str)
-					str++;
-				continue;
-			case QUOTE :
-				_strV.setLen(str - _strV.getStart());
-				_pendingQuote = true;
-				return;
-			default : str++;
+			continue;
+		case QUOTE:
+			_strV.setLen(str - _strV.getStart());
+			_pendingQuote = true;
+			return;
+		default:
+			str++;
 		}
 	}
 }
 
-unsigned char Token::next() {
+uchar Token::loadNext() { return loadNextCore(false); }
+
+uchar Token::loadNextStr() { return loadNextCore(true); }
+
+uchar Token::loadNextCore(const bool keepSpaces) {
 	_strV.updateOffset(_strV.getLen() + _pendingQuote);
 	_pendingQuote = false;
-	const char *str	= _strV.getStart();
+	const char *str = _strV.getStart();
 	_strV.setLen(0);
 
 	while (1) {
-		_type = _isDelimiter[(unsigned char)(*str)];
+		_type = _isDelimiter[(uchar)(*str)];
 		switch (_type) {
-			case NEWLINE : // extract new line expresion
-				_strV.setStart(str);
-				while (NEWLINE == _isDelimiter[(unsigned char)(*str)])
-					str++;
-				_strV.setLen(str - _strV.getStart());
-				return _type;
-			case SPACE : // Skip cursor
+		case NEWLINE: // extract new line expresion
+			_strV.setStart(str);
+			while (NEWLINE == _isDelimiter[(uchar)(*str)])
 				str++;
-				break;
-			case COMMENT : // Skip comment
-				while (*str && *str != '\n')
-					str++;
-				break;
-
-			case WORD : // Extract Token
-				_strV.setStart(str);
-				while (WORD == _isDelimiter[(unsigned char)(*str)])
-					str++;
-				_strV.setLen(str - _strV.getStart());
-				return _type;
-
-			case QUOTE :
+			_strV.setLen(str - _strV.getStart());
+			return _type;
+		case SPACE: // Skip cursor
+			str++;
+			break;
+		case COMMENT: // Skip comment
+			while (*str && *str != '\n')
 				str++;
-				_strV.setStart(str);
-				extractQuote(str);
-				return _type = WORD;
+			break;
 
-			default : // Extract other single char delimiters
-				_strV.setStart(str);
-				_strV.setLen(1);
-				return _type;
+		case WORD: // Extract Token
+			_strV.setStart(str);
+			if (keepSpaces)
+				while (WORD == _isDelimiter[(uchar)(*str)] ||
+					   SPACE == _isDelimiter[(uchar)(*str)])
+					str++;
+			else
+				while (WORD == _isDelimiter[(uchar)(*str)])
+					str++;
+			_strV.setLen(str - _strV.getStart());
+			return _type;
+
+		case QUOTE:
+			str++;
+			_strV.setStart(str);
+			extractQuote(str);
+			return _type = WORD;
+
+		default:
+			_strV.setStart(str);
+			_strV.setLen(1);
+			return _type;
 		}
 	}
 }
 
-unsigned char	Token::getNextOfType(unsigned char type, const char *errStr) {
-	next();
-
+uchar Token::loadNextOfType(uchar type, const char *errStr) {
+	loadNext();
 	if (type != _type)
 		throw parsingErr(errStr);
 	return _type;
 }
 
-unsigned char	Token::getNextOfTypes(unsigned char* types, unsigned int nTypes, const char *errStr) {
-	next();
+uchar Token::loadNextStr(const char *errStr) {
+	loadNextStr();
+	if (WORD != _type)
+		throw parsingErr(errStr);
+	return _type;
+}
+
+uchar Token::loadNextOfTypes(uchar *types, uint nTypes, const char *errStr) {
+	loadNext();
 
 	while (nTypes--) {
 		if (*types == _type)
@@ -135,45 +151,42 @@ unsigned char	Token::getNextOfTypes(unsigned char* types, unsigned int nTypes, c
 
 bool Token::compare(const char *str) const {
 	const uchar len = _strV.getLen();
-	if (OK == strncmp(_strV.getStart(), str, len)
-		&& str[len] == '\0')
+	if (OK == strncmp(_strV.getStart(), str, len) && str[len] == '\0')
 		return true;
 	return false;
 };
 
-bool Token::compare(StrView& strV) const {
-	return compare(strV.getStart());
-};
+bool Token::compare(StrView &strV) const { return compare(strV.getStart()); };
 
-char Token::compare(const char** strArr, unsigned char len) {
+char Token::compare(const char **strArr, unsigned char len) {
 	for (uchar i = 0; i < len; i++)
 		if (OK == compare(strArr[i]))
 			return i;
 	return -1;
 }
 
-uchar			Token::getType() const	{ return _type; }
-StrView			Token::getStrV() const	{ return _strV; }
-int				Token::getLineN() const	{ return _lineN; }
-const char*		Token::getStart() const	{ return _strV.getStart(); }
+uchar Token::getType() const { return _type; }
+StrView Token::getStrV() const { return _strV; }
+int Token::getLineN() const { return _lineN; }
+const char *Token::getStart() const { return _strV.getStart(); }
 
-std::string		Token::getString() const {
+std::string Token::getString() const {
 	return (std::string(_strV.getStart(), _strV.getLen()));
 }
 
-void	Token::trackInUseToken(StrView *strV) {
+void Token::trackInUseToken(StrView *strV) {
 	_tokensInUse.push_back(strV);
-	_strBuffSize += strV->getLen() + 1 ;
+	_strBuffSize += strV->getLen() + 1;
 }
 
-void	Token::consolidateBuffer(std::string& newBuffer) {
+void Token::consolidateBuffer(std::string &newBuffer) {
 	newBuffer.reserve(_strBuffSize);
-	for (uint i = 0; i < _tokensInUse.size() ; i++)
+	for (uint i = 0; i < _tokensInUse.size(); i++)
 		_tokensInUse[i]->move(newBuffer);
 	_tokensInUse.clear();
 	_strBuffSize = 0;
 }
 
-void	Token::LoadParsingString(std::string& parsingString) {
+void Token::LoadParsingString(std::string &parsingString) {
 	_strV.setBuffer(parsingString);
 }

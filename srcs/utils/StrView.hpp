@@ -12,32 +12,39 @@ private:
 
 public:
 	// Constructors and destructors
-	StrView(std::string &buffer, const int offset, const unsigned char len);
+	StrView(std::string &buffer, const int offset, const uchar len);
 	StrView(std::string &buffer);
 	StrView(const StrView &other);
 	~StrView();
-
 	// Operators overload
 	StrView &operator=(const StrView &other);
-
-	// Getters and setters
+	bool operator==(const StrView &other) const;
+	bool operator!=(const StrView &other) const;
+	bool operator!=(const char *str) const;
+	bool operator==(const char *str) const;
+	bool operator<(const StrView &other) const;
+	// Getters
 	const char *getStart() const;
-	unsigned int getLen() const;
 	std::string getStr() const;
-
+	uint getOffset() const;
+	uint getLen() const;
+	// Setters
 	void setBuffer(std::string &newBuffer);
 	void setStart(const char *start);
-	void setLen(unsigned int len);
-	void setStartAndLen(const char *start, unsigned int len);
-
+	void setLen(uint len);
+	void setStartAndLen(const char *start, uint len);
 	// Methods
-	bool operator<(const StrView &other) const;
+	const char *getEnd() const;
+	void trimEnd(const size_t trimSize);
 	bool compare(StrView &str) const;
 	bool compare(const char *str) const;
-	void updateOffset(unsigned int increase);
-	unsigned int getOffset() const;
+	void updateOffset(uint increase);
 	void printStrV() const;
 	void move(std::string &toBuffer);
 };
+
+// Out of class operators for reverse comparison
+inline bool operator==(const char *str, const StrView &sv) { return sv == str; }
+inline bool operator!=(const char *str, const StrView &sv) { return sv != str; }
 
 #endif

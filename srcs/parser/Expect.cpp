@@ -1,8 +1,8 @@
-#include "Server.hpp"
-#include "webServ.hpp"
 #include "Expect.hpp"
+#include "Server.hpp"
 #include "StrView.hpp"
 #include "Token.hpp"
+#include "webServ.hpp"
 #include <arpa/inet.h>
 #include <cerrno>
 #include <climits>
@@ -17,17 +17,17 @@
 #include <vector>
 
 using std::map;
-using std::string;
 using std::pair;
+using std::string;
 
 // Public constructors and destructors
-Expect::Expect(Token& token):
+Expect::Expect(Token &token) :
 	_token(token) {}
 
 Expect::~Expect() {}
 
 // Error Handler
-std::runtime_error Expect::parsingErr(const char* expected) const {
+std::runtime_error Expect::parsingErr(const char *expected) const {
 	std::ostringstream oss;
 	oss << "Error Parsing config: "
 		<< "Expected \"" << expected << "\" "
@@ -38,7 +38,7 @@ std::runtime_error Expect::parsingErr(const char* expected) const {
 }
 
 // Public Methods
-uchar	Expect::method() {
+uchar Expect::method() {
 	static const char *methods[] = {"DEFAULT", "GET", "POST", "DELETE"};
 	static const uchar size = 4;
 
@@ -48,9 +48,8 @@ uchar	Expect::method() {
 	return Location::DEFAULT;
 }
 
-
-bool	Expect::onOff() {
-	_token.getNextOfType(Token::WORD, "\"on/off\"");
+bool Expect::onOff() {
+	_token.loadNextOfType(Token::WORD, "\"on/off\"");
 	if (_token.compare("on"))
 		return (true);
 	if (_token.compare("off"))
@@ -58,34 +57,34 @@ bool	Expect::onOff() {
 	throw parsingErr("\"on/off\"");
 }
 
-uchar	Expect::word(const char *str) {
-	_token.getNextOfType(Token::WORD, str);
+uchar Expect::word(const char *str) {
+	_token.loadNextOfType(Token::WORD, str);
 	if (!_token.compare(str))
 		throw parsingErr(str);
 	return Token::WORD;
 }
 
-Span<StrView>	Expect::wordVec(std::vector<StrView>& vecBuf, uint& vecCursor) {
+Span<StrView> Expect::wordVec(std::vector<StrView> &vecBuf, uint &vecCursor) {
 	uint count = 0;
 	while (1) {
-		switch (_token.next()) {
-			case Token::WORD:
-				vecBuf.push_back(_token.getStrV());
-				_token.trackInUseToken(&vecBuf.back());
-				count++;
-				break;
-			case Token::SEMICOLON: {
-				Span<StrView> ret(vecBuf, vecCursor, count);
-				vecCursor += count;
-				return ret;
-			}
-			default: throw parsingErr("WORD");
+		switch (_token.loadNext()) {
+		case Token::WORD:
+			vecBuf.push_back(_token.getStrV());
+			_token.trackInUseToken(&vecBuf.back());
+			count++;
+			break;
+		case Token::SEMICOLON: {
+			Span<StrView> ret(vecBuf, vecCursor, count);
+			vecCursor += count;
+			return ret;
+		}
+		default:
+			throw parsingErr("WORD");
 		}
 	}
 }
 
-void	Expect::errorPage(map<uint, StrView>& errorMap, string& strBuf)
-{
+void Expect::errorPage(map<uint, StrView> &errorMap, string &strBuf) {
 	uint code = nextInteger();
 
 	// Empty StrView placeholder
@@ -96,19 +95,19 @@ void	Expect::errorPage(map<uint, StrView>& errorMap, string& strBuf)
 	// insert() returns pair<iterator, bool> where:
 	//   .first  = iterator pointing to the element (inserted or existing)
 	//   .second = true if inserted, false if key already existed
-	pair<map<uint, StrView>::iterator, bool> insertResult = 
+	pair<map<uint, StrView>::iterator, bool> insertResult =
 		errorMap.insert(placeholderEntry);
 
 	// Get pointer to the StrView now stored in the map
 	map<uint, StrView>::iterator errorIter = insertResult.first;
-	StrView* pathPtr = &errorIter->second;
+	StrView *pathPtr = &errorIter->second;
 
 	// Fill the empty StrView and register it for consolidation
 	path(pathPtr);
 }
 
-void	Expect::path(StrView* dest) {
-	_token.getNextOfType(Token::WORD, "/<PATH>");
+void Expect::path(StrView *dest) {
+	_token.loadNextOfType(Token::WORD, "/<PATH>");
 	if (_token.getStrV().getStart()[0] == '/') {
 		*dest = _token.getStrV();
 		_token.trackInUseToken(dest);
@@ -117,21 +116,29 @@ void	Expect::path(StrView* dest) {
 	throw parsingErr("/<PATH>");
 }
 
-void	Expect::paths(StrView* paths, int n) {
+void Expect::paths(StrView *paths, int n) {
 	for (int i = 0; i < n; i++) {
 		path(&paths[i]);
 	}
 }
 
 size_t Expect::applySizeUnit(size_t value, char unit) {
-	if (unit == '\0') return value;
+	if (unit == '\0')
+		return value;
 
 	size_t multiplier;
 	switch (tolower(unit)) {
-		case 'k': multiplier = 1024; break;
-		case 'm': multiplier = 1024 * 1024; break;
-		case 'g': multiplier = 1024 * 1024 * 1024; break;
-		default: throw parsingErr("Invalid size unit (use k, m, or g)");
+	case 'k':
+		multiplier = 1024;
+		break;
+	case 'm':
+		multiplier = 1024 * 1024;
+		break;
+	case 'g':
+		multiplier = 1024 * 1024 * 1024;
+		break;
+	default:
+		throw parsingErr("Invalid size unit (use k, m, or g)");
 	}
 
 	if (value > std::numeric_limits<size_t>::max() / multiplier)
@@ -139,26 +146,30 @@ size_t Expect::applySizeUnit(size_t value, char unit) {
 	return value * multiplier;
 }
 
-long Expect::number(const char** endPtr) {
+long Expect::number(const char **endPtr) {
 	StrView token = _token.getStrV();
-	const char* start = token.getStart();
-	const char* tokenEnd = start + token.getLen();
+	const char *start = token.getStart();
+	const char *tokenEnd = start + token.getLen();
 
 	errno = 0;
-	char* parseEnd;
+	char *parseEnd;
 	long result = strtol(start, &parseEnd, 10);
 
-	if (errno == ERANGE) throw parsingErr("Number out of range");
-	if (parseEnd == start) throw parsingErr("Expected number");
-	if (parseEnd > tokenEnd) throw parsingErr("Invalid number format");
-	if (result < 0) throw parsingErr("Negative number not allowed");
+	if (errno == ERANGE)
+		throw parsingErr("Number out of range");
+	if (parseEnd == start)
+		throw parsingErr("Expected number");
+	if (parseEnd > tokenEnd)
+		throw parsingErr("Invalid number format");
+	if (result < 0)
+		throw parsingErr("Negative number not allowed");
 
 	*endPtr = parseEnd;
 	return result;
 }
 
 int Expect::integer() {
-	const char* end;
+	const char *end;
 	long result = number(&end);
 
 	StrView token = _token.getStrV();
@@ -171,18 +182,18 @@ int Expect::integer() {
 }
 
 int Expect::nextInteger() {
-	_token.getNextOfType(Token::WORD, "word");
+	_token.loadNextOfType(Token::WORD, "word");
 	return integer();
 }
 
 size_t Expect::size() {
-	_token.getNextOfType(Token::WORD, "word");
+	_token.loadNextOfType(Token::WORD, "word");
 
-	const char* end;
+	const char *end;
 	long result = number(&end);
 	size_t size = static_cast<size_t>(result);
 	StrView token = _token.getStrV();
-	const char* tokenEnd = token.getStart() + token.getLen();
+	const char *tokenEnd = token.getStart() + token.getLen();
 
 	if (end != tokenEnd) {
 		size = applySizeUnit(size, *end);
@@ -192,7 +203,7 @@ size_t Expect::size() {
 	return size;
 }
 
-in_addr_t Expect::ip(string& ipStr) {
+in_addr_t Expect::ip(string &ipStr) {
 	const size_t nOctets = 4;
 
 	if (ipStr == "*" || ipStr == "0.0.0.0")
@@ -207,12 +218,13 @@ in_addr_t Expect::ip(string& ipStr) {
 	for (size_t i = 0; i < nOctets; i++) {
 		size_t dotPos = (i < 3) ? ipStr.find('.', start) : ipStr.length();
 
-		if (dotPos == string::npos || dotPos == start) // npos == not found/no position
+		if (dotPos == string::npos ||
+			dotPos == start) // npos == not found/no position
 			throw parsingErr("Invalid IP address");
 
 		string octetStr = ipStr.substr(start, dotPos - start);
 
-		char* end;
+		char *end;
 		errno = 0;
 		long octet = strtol(octetStr.c_str(), &end, 10);
 
@@ -231,11 +243,11 @@ in_addr_t Expect::ip(string& ipStr) {
 	return static_cast<in_addr_t>(result);
 }
 
-uint16_t Expect::port(const string& portStr) {
+uint16_t Expect::port(const string &portStr) {
 	if (portStr.empty())
 		throw parsingErr("Invalid port number");
 
-	char* end;
+	char *end;
 	errno = 0;
 	long port = strtol(portStr.c_str(), &end, 10);
 
