@@ -20,6 +20,7 @@
 #include "../requests/Request.hpp"
 #include "../server/Server.hpp"
 
+#define SERVER_NAME "nailedIt 1.0"
 
 class	Response
 {
@@ -33,11 +34,11 @@ protected:
 	reqVariables*	_requestVars;
 	std::string		_responseHeader;
 	std::string		_responseBody;
+	virtual bool	sendResponse(const int &clientFD, const int &port);
+	virtual int		generateHeader(void) = 0;
 	void			getTime(char* buf, int bufSize);
-	virtual int		sendResponse(const int& clientFD);
-	// virtual int		generateResponse(void);
 
-private:
+	private:
 	Response(void);
 	Response(const Response &other);
 	Response &	operator=(const Response &other);

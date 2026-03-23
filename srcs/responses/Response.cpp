@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/19 18:05:11 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/23 14:36:16 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,18 +16,35 @@ Response::Response(Location* loc, reqVariables* vars) : _location(loc), _request
 {
 
 }
+
 Response::~Response(void)
 {
 
 }
 
-int	Response::sendResponse(const int &clientFD)
+int	Response::generateHeader(void)
 {
-	// createHeader();
+	std::stringstream header;
+	header << "HTTP/1.1 200 OK\r\n";
+	char buf[64];
+	getTime(buf,64);
+	header << "Date: " << buf << "\r\n";
+	header << "Server: nailedIt/1.0\r\n";
+	if (_responseBody.size() > 0)
+		header << "Content-Length: " << _responseBody.size() << "\r\n";
+	header << "\r\n";
+	_responseHeader = header.str();
+	return 0;
+}
+
+bool	Response::sendResponse(const int &clientFD, const int &port)
+{
+	(void) port;			//only needed for CGI
+	generateHeader();
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 0;
+	return 1;
 }
 
 void	Response::getTime(char* buf, int bufSize)

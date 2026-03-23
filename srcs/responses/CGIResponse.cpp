@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/19 18:23:06 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/23 14:49:19 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,14 +23,14 @@ CGIResponse::~CGIResponse(void)
 
 }
 
-int	CGIResponse::createHeader(void)
+int	CGIResponse::generateHeader(void)
 {
 	std::stringstream header;
 	header << "HTTP/1.1 200 OK\r\n";
 	char buf[64];
 	getTime(buf,64);
 	header << "Date: " << buf << "\r\n";
-	header << "Server: nailedIt/1.0\r\n";
+	header << "Server: " << SERVER_NAME << "\r\n";
 	if (_responseBody.size() > 0)
 		header << "Content-Length: " << _responseBody.size() << "\r\n";
 	header << "\r\n";
@@ -38,18 +38,19 @@ int	CGIResponse::createHeader(void)
 	return 0;
 }
 
-int	CGIResponse::sendResponse(const int &clientFD)
+bool	CGIResponse::sendResponse(const int &clientFD, const int &port)
 {
+	_port = port;
 	if (runCGI() != 0)
 		return (1);
-	createHeader();
+	generateHeader();
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 0;
+	return 1;
 }
 
-int	CGIResponse::childProcess(int pipeP2C[2], int pipeC2P[2])
+int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 {
 	this->setEnvironment();
 	close(pipeC2P[0]);
@@ -123,8 +124,8 @@ std::string	*CGIResponse::getCGIoutput(void)
 
 void	CGIResponse::setEnvironment(void)
 {
-	if (this->_metaVs.AUTH_TYPE)
-		setenv("AUTH_TYPE", this->_metaVs.AUTH_TYPE, 1);
+	// if (this->_metaVs.AUTH_TYPE)
+	// 	setenv("AUTH_TYPE", this->_metaVs.AUTH_TYPE, 1);
 	// else
 	// 	setenv("AUTH_TYPE", "NULL", 1);
 
@@ -142,8 +143,7 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("CONTENT_TYPE", "", 1);
 
-	if (this->_metaVs.GATEWAY_INTERFACE)
-		setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
+	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
 
 
 	if (!this->_requestVars->requestPath.empty())
@@ -208,9 +208,9 @@ void	CGIResponse::setEnvironment(void)
 	// 	setenv("SERVER_NAME", "NULL", 1);
 
 	// if (this->_metaVs.SERVER_PORT)
-	// char	buf[32];
+	char	buf[32];
 	// ::snprintf(buf, 32, "%d", this->_requestVars->port);
-	// setenv("SERVER_PORT", buf, 1);
+	setenv("SERVER_PORT", buf, 1);
 	// else
 	// 	setenv("SERVER_PORT", "NULL", 1);
 
@@ -220,69 +220,7 @@ void	CGIResponse::setEnvironment(void)
 	// 	setenv("SERVER_PROTOCOL", "NULL", 1);
 
 	// if (this->_metaVs.SERVER_SOFTWARE)
-		setenv("SERVER_SOFTWARE", "PNC server 1.0", 1);
+		setenv("SERVER_SOFTWARE", SERVER_NAME, 1);
 	// else
 	// 	setenv("SERVER_SOFTWARE", "NULL", 1);
 }
-
-void	CGIResponse::initialiseMetaVs(void)
-{
-	this->_metaVs.AUTH_TYPE = strdup("user");	//temp
-	// const char*	lenStr = std::to_string(this->_requestVars->contentLength).c_str();
-	// this->_metaVs.CONTENT_LENGTH = strdup(lenStr);
-	this->_metaVs.CONTENT_TYPE = strdup("text");
-	this->_metaVs.GATEWAY_INTERFACE = strdup("CGI/1.1");
-	this->_metaVs.PATH_INFO = NULL;
-	this->_metaVs.PATH_TRANSLATED = NULL;
-	this->_metaVs.QUERY_STRING = strdup("query=hi?");
-	this->_metaVs.REMOTE_ADDR = strdup("127.0.0.21");
-	this->_metaVs.REMOTE_HOST = strdup("NULL");
-	this->_metaVs.REMOTE_IDENT = strdup("NULL");
-	this->_metaVs.REMOTE_USER = strdup("NULL");
-	this->_metaVs.REQUEST_METHOD = strdup("GET");
-	this->_metaVs.SCRIPT_NAME = strdup("includes/cgi-bin/hello.cgi");
-	this->_metaVs.SERVER_NAME = strdup("webserv");
-	this->_metaVs.SERVER_PORT = strdup("5555");
-	this->_metaVs.SERVER_PROTOCOL = strdup("HTTP/1.1");
-	this->_metaVs.SERVER_SOFTWARE = strdup("PNC");
-}
-
-
-void	CGIResponse::freeMetaVs(void)
-{
-	if (this->_metaVs.AUTH_TYPE)
-		free(this->_metaVs.AUTH_TYPE);
-	if (this->_metaVs.CONTENT_LENGTH)
-		free(this->_metaVs.CONTENT_LENGTH);
-	if (this->_metaVs.CONTENT_TYPE)
-		free(this->_metaVs.CONTENT_TYPE);
-	if (this->_metaVs.GATEWAY_INTERFACE)
-		free(this->_metaVs.GATEWAY_INTERFACE);
-	if (this->_metaVs.PATH_INFO)
-		free(this->_metaVs.PATH_INFO);
-	if (this->_metaVs.PATH_TRANSLATED)
-		free(this->_metaVs.PATH_TRANSLATED);
-	if (this->_metaVs.QUERY_STRING)
-		free(this->_metaVs.QUERY_STRING);
-	if (this->_metaVs.REMOTE_ADDR)
-		free(this->_metaVs.REMOTE_ADDR);
-	if (this->_metaVs.REMOTE_HOST)
-		free(this->_metaVs.REMOTE_HOST);
-	if (this->_metaVs.REMOTE_IDENT)
-		free(this->_metaVs.REMOTE_IDENT);
-	if (this->_metaVs.REMOTE_USER)
-		free(this->_metaVs.REMOTE_USER);
-	if (this->_metaVs.REQUEST_METHOD)
-		free(this->_metaVs.REQUEST_METHOD );
-	if (this->_metaVs.SCRIPT_NAME)
-		free(this->_metaVs.SCRIPT_NAME);
-	if (this->_metaVs.SERVER_NAME)
-		free(this->_metaVs.SERVER_NAME);
-	if (this->_metaVs.SERVER_PORT)
-		free(this->_metaVs.SERVER_PORT);
-	if (this->_metaVs.SERVER_PROTOCOL)
-		free(this->_metaVs.SERVER_PROTOCOL);
-	if (this->_metaVs.SERVER_SOFTWARE)
-		free(this->_metaVs.SERVER_SOFTWARE);
-}
-
