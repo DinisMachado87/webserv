@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   CGIResponse.hpp                                    :+:      :+:    :+:   */
+/*   GetResponse.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/26 16:40:12 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 10:53:29 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/23 15:27:47 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,29 +14,21 @@
 
 #include "Response.hpp"
 
-extern char**	environ;
-
-class	CGIResponse : public Response
+class	GetResponse : public Response
 {
 public:
-	CGIResponse(Location* loc, Request* req);
-	~CGIResponse(void);
+	GetResponse(Location* loc, reqVariables* vars);
+	~GetResponse(void);
 	bool			sendResponse(const int& clientFD, const int &port);
-	std::string*	getCGIoutput(void);
 
 
 
 	private:
-	int			_port;
-
-	int		runCGI(void);
-	int		childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2]);
 	int		generateHeader(void);
-	void	setEnvironment(void);
 
 
-	CGIResponse(const CGIResponse &other);
-	CGIResponse &	operator=(const CGIResponse &other);
+	GetResponse(const GetResponse &other);
+	GetResponse &	operator=(const GetResponse &other);
 };
 
 

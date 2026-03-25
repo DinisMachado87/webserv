@@ -25,15 +25,15 @@
 class	Response
 {
 public:
-	Response(Location* loc, reqVariables* vars);
+	Response(Location* loc, Request* req);
 	virtual ~Response(void);
 
 
 protected:
 	Location*		_location;
-	reqVariables*	_requestVars;
 	std::string		_responseHeader;
 	std::string		_responseBody;
+	Request*		_request;
 	virtual bool	sendResponse(const int &clientFD, const int &port);
 	virtual int		generateHeader(void) = 0;
 	void			getTime(char* buf, int bufSize);

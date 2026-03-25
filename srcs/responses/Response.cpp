@@ -6,13 +6,13 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/23 14:36:16 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 10:52:00 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.hpp"
 
-Response::Response(Location* loc, reqVariables* vars) : _location(loc), _requestVars(vars)
+Response::Response(Location* loc, Request* req) : _location(loc), _request(req)
 {
 
 }

@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/23 14:49:19 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 10:52:11 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 
 
-CGIResponse::CGIResponse(Location* loc, reqVariables* vars) : Response(loc, vars)
+CGIResponse::CGIResponse(Location* loc, Request* req) : Response(loc, req)
 {
 
 }
