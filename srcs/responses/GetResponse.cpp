@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/23 15:29:15 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 12:18:41 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 
 
-GetResponse::GetResponse(Location* loc, reqVariables* vars) : Response(loc, vars)
+GetResponse::GetResponse(Location* loc, Request* req) : Response(loc, req)
 {
 
 }

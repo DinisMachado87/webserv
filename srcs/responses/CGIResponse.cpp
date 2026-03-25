@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 10:52:11 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 12:13:37 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,7 +90,8 @@ int		CGIResponse::runCGI(void)
 		this->childProcess(pipeP2C, pipeC2P);
 	close(pipeP2C[0]);
 	close(pipeC2P[1]);
-	write(pipeP2C[1], this->_requestVars->body.c_str(), this->_requestVars->body.size());
+	const std::string& body = this->_request->getBody();
+	write(pipeP2C[1], body.c_str(), body.size());
 	close(pipeP2C[1]);
 	int	status = 0;
 	waitpid(pid, &status, 0);
@@ -129,25 +130,27 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("AUTH_TYPE", "NULL", 1);
 
-	if (this->_requestVars->contentLength >= 0)
+	const int& contentLength = this->_request->getContentLength();
+	if (contentLength >= 0)
 	{
 		char	buf[32];
-		::snprintf(buf, 32, "%ld", this->_requestVars->contentLength);
+		::snprintf(buf, 32, "%ld", contentLength);
 		setenv("CONTENT_LENGTH", buf, 1);
 	}
 	// else
 	// 	setenv("CONTENT_LENGTH", "", 1);
 
-	if (!this->_requestVars->contentType.empty())
-		setenv("CONTENT_TYPE", this->_requestVars->contentType.c_str(), 1);
+	const std::string& contentType = this->_request->getContentType();
+	if (!contentType.empty())
+		setenv("CONTENT_TYPE", contentType.c_str(), 1);
 	// else
 	// 	setenv("CONTENT_TYPE", "", 1);
 
 	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
 
-
-	if (!this->_requestVars->requestPath.empty())
-		setenv("PATH_INFO", this->_requestVars->requestPath.c_str(), 1);
+	const std::string& requestPath = this->_request->getRequestPath();
+	if (!requestPath.empty())
+		setenv("PATH_INFO", requestPath.c_str(), 1);
 	else
 		setenv("PATH_INFO", "", 1);
 
@@ -156,18 +159,21 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("PATH_TRANSLATED", "NULL", 1);
 
-	if (!this->_requestVars->queryString.empty())
-		setenv("QUERY_STRING", this->_requestVars->queryString.c_str(), 1);
+	const std::string& queryString = this->_request->getQueryString();
+	if (!queryString.empty())
+		setenv("QUERY_STRING", queryString.c_str(), 1);
 	// else
 	// 	setenv("QUERY_STRING", "NULL", 1);
 
-	if (!this->_requestVars->remoteAddr.empty())
-		setenv("REMOTE_ADDR", this->_requestVars->remoteAddr.c_str(), 1);
+	const std::string& remoteAddr = this->_request->getRemoteAddr();
+	if (!remoteAddr.empty())
+		setenv("REMOTE_ADDR", remoteAddr.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_ADDR", "NULL", 1);
 
-	if (!this->_requestVars->remoteHost.empty())
-		setenv("REMOTE_HOST", this->_requestVars->remoteHost.c_str(), 1);
+	const std::string& remoteHost = this->_request->getRemoteHost();
+	if (!remoteHost.empty())
+		setenv("REMOTE_HOST", remoteHost.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_HOST", "NULL", 1);
 
@@ -181,7 +187,8 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("REMOTE_USER", "NULL", 1);
 
-	switch (this->_requestVars->type) {
+
+	switch (this->_request->getType()) {
 		case REQ_GET:
 			setenv("REQUEST_METHOD", "GET", 1);
 			break ;
@@ -197,8 +204,9 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("REQUEST_METHOD", "NULL", 1);
 
-	if (!this->_requestVars->scriptName.empty())
-		setenv("SCRIPT_NAME", this->_requestVars->scriptName.c_str(), 1);
+	const std::string& scriptName = this->_request->getFilePath();
+	if (!scriptName.empty())
+		setenv("SCRIPT_NAME", scriptName.c_str(), 1);
 	// else
 	// 	setenv("SCRIPT_NAME", "NULL", 1);
 

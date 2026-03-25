@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 10:52:00 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 12:17:06 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,10 +53,10 @@ void	Response::getTime(char* buf, int bufSize)
 	std::strftime(buf, bufSize, "%a, %d %b %Y %H:%M:%S", std::localtime(&current));
 }
 
-void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over)
+/* void	initialise_everything(Location* loc, Request* req, Overrides* over)
 {
 	(void)loc;
-	(void)vars;
+	(void)req;
 	(void)over;
 	vars->method = REQ_POST;
 	vars->body = "<body> here is some body </body>";
@@ -69,4 +69,4 @@ void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over)
 	vars->scriptName = "hello.cgi";
 	vars->remoteAddr = "175.0.0.23";
 	vars->remoteHost = "client.com";
-}
+} */
