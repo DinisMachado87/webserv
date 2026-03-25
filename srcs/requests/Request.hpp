@@ -1,11 +1,21 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Request.hpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/03/20 08:41:36 by akosloff          #+#    #+#             */
+/*   Updated: 2026/03/25 10:52:54 by akosloff         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #pragma once
 
+
+#include <cstddef>
 #include <string>
 #include <vector>
-
-
-struct Location;
-class HttpRequest;
 
 struct HeaderField
 {
@@ -13,7 +23,7 @@ struct HeaderField
 	std::string value;
 };
 
-enum e_response_type
+enum e_request_type
 {
 	REQ_GET,
 	REQ_POST,
@@ -21,45 +31,112 @@ enum e_response_type
 	REQ_ERROR
 };
 
-							//RFC2616
-typedef	struct	reqVariables {		//{defaults}
-std::string				method;			//GET / POST / PUT / DELETE etc
-int						contentLength;	//length of message body - taken from header or manually calculated if chunked {-1}
-int						clientFD;
-int						errorCode; //400 or 405 or etc
-std::string				errorMessage; //actual message to print
-std::string				requestPath;	//e.g. URL=example.com/cgi-bin/hello.cgi/user/admin {NULL} (parser needs to check for cgi-bin)
-std::string				CONTENT_TYPE;	//media type of message body - from header {NULL}
-std::string				QUERY_STRING;	//information for the CGI script to affect the return value - URL after '?' {NULL} e.g. URL=example.com/cgi-bin/hello.cgi/user/admin?query=date QUERY_STRING=query=date
-std::string				REMOTE_ADDR;	//network address of client sending the request (ipv4 or ipv6) {NULL}
-std::string				REMOTE_HOST;	//domain name of the client sending the request, or {NULL}
-std::string				requestVersion; //http/1.1 or other
-std::vector<HeaderField> headers; //the headers of the http request
-e_response_type			type;	
-}	reqVariables;
-
-class	Request
+class Request
 {
 public:
-	Request(reqVariables *vars);
-/* 	Request(Location* loc, const HttpRequest& parsed, int clientFD,
-		const std::string& remoteAddr, const std::string& remoteHost); */
-	~Request(void);
+	Request();
+	~Request();
 
-	void respond(std::string message);
-	const reqVariables&	getVariables() const;
-	const std::string&	getBody() const;
-	int					getClientFD() const;
-	Location*			getLocation() const;
+	// setters used by HttpParser
+	void setMethod(const std::string& method);
+	void setType(e_request_type type);
+	void setRequestTarget(const std::string& target);
+	void setRequestPath(const std::string& path);
+	void setQueryString(const std::string& query);
+	void setRequestVersion(const std::string& version);
+	void setHost(const std::string& host);
+	void setContentType(const std::string& contentType);
+	void setContentLength(size_t contentLength);
+	void setHasContentLength(bool hasContentLength);
+	void setBody(const std::string& body);
+	void setClientFD(int clientFD);
+	void setRemoteAddr(const std::string& remoteAddr);
+	void setRemoteHost(const std::string& remoteHost);
+	void addHeader(const std::string& name, const std::string& value);
 
-protected:
-	reqVariables *vars;
-	Location*	_location;
+	// parse error state
+	void setParseError(int code, const std::string& message);
+	bool hasParseError() const;
+	int getParseErrorCode() const;
+	const std::string& getParseErrorMessage() const;
+
+	// getters used by Vaidator
+	const std::string& getMethod() const;
+	e_request_type getType() const;
+	const std::string& getRequestTarget() const;
+	const std::string& getRequestPath() const;
+	const std::string& getQueryString() const;
+	const std::string& getRequestVersion() const;
+	const std::string& getHost() const;
+	const std::string& getContentType() const;
+	size_t getContentLength() const;
+	bool hasContentLength() const;
+	const std::string& getBody() const;
+	int getClientFD() const;
+	const std::string& getRemoteAddr() const;
+	const std::string& getRemoteHost() const;
+	const std::vector<HeaderField>& getHeaders() const;
+
+	bool isGet() const;
+	bool isPost() const;
+	bool isDelete() const;
+
+	// helpers
+	bool hasHeader(const std::string& name) const;
+	std::string getHeaderValue(const std::string& name) const;
 
 private:
-	Request(void);
-	Request(const Request &other);
-	Request &	operator=(const Request &other);
+	Request(const Request& other);
+	Request& operator=(const Request& other);
+
+private:
+	std::string				_method;
+	e_request_type			_type;
+	std::string				_requestTarget;
+	std::string				_requestPath;
+	std::string				_queryString;
+	std::string				_requestVersion;
+	std::string				_host;
+	std::string				_contentType;
+	size_t					_contentLength;
+	bool					_hasContentLength;
+	std::string				_body;
+	int						_clientFD;
+	std::string				_remoteAddr;
+	std::string				_remoteHost;
+	std::vector<HeaderField> _headers;
+
+	bool					_hasParseError;
+	int						_parseErrorCode;
+	std::string				_parseErrorMessage;
 };
 
+
+/* Responsibility:
+
+represent one HTTP request
+own parsed request data
+expose getters
+maybe do only request-internal validation
+
+Examples:
+
+method
+target/path
+query string
+version
+headers
+body
+host
+content-length
+
+It should not:
+
+know filesystem paths
+know server root resolution
+know how to serve files
+know how to execute CGI
+know how to create a Response
+
+So Request becomes a real data model object. */
 

@@ -1,64 +1,254 @@
 #include "Request.hpp"
-#include <sys/socket.h>
-#include <sstream>
 
-Request::Request(reqVariables *vars) :
-	vars(vars),
-	_location(NULL)
+Request::Request() :
+	_method(),
+	_type(REQ_ERROR),
+	_requestTarget(),
+	_requestPath(),
+	_queryString(),
+	_requestVersion(),
+	_host(),
+	_contentType(),
+	_contentLength(0),
+	_hasContentLength(false),
+	_body(),
+	_clientFD(-1),
+	_remoteAddr(),
+	_remoteHost(),
+	_headers(),
+	_hasParseError(false),
+	_parseErrorCode(0),
+	_parseErrorMessage()
 {
 }
 
-Request::~Request(void)
+Request::~Request()
 {
-	delete vars;
 }
 
-void Request::respond(std::string message)
-{
-	std::string statusLine = "HTTP/1.1 200 OK\r\n";
+/* ==================== Setters ==================== */
 
-	if (vars->type == REQ_ERROR)
+void Request::setMethod(const std::string& method)
+{
+	_method = method;
+}
+
+void Request::setType(e_request_type type)
+{
+	_type = type;
+}
+
+void Request::setRequestTarget(const std::string& target)
+{
+	_requestTarget = target;
+}
+
+void Request::setRequestPath(const std::string& path)
+{
+	_requestPath = path;
+}
+
+void Request::setQueryString(const std::string& query)
+{
+	_queryString = query;
+}
+
+void Request::setRequestVersion(const std::string& version)
+{
+	_requestVersion = version;
+}
+
+void Request::setHost(const std::string& host)
+{
+	_host = host;
+}
+
+void Request::setContentType(const std::string& contentType)
+{
+	_contentType = contentType;
+}
+
+void Request::setContentLength(size_t contentLength)
+{
+	_contentLength = contentLength;
+}
+
+void Request::setHasContentLength(bool hasContentLength)
+{
+	_hasContentLength = hasContentLength;
+}
+
+void Request::setBody(const std::string& body)
+{
+	_body = body;
+}
+
+void Request::setClientFD(int clientFD)
+{
+	_clientFD = clientFD;
+}
+
+void Request::setRemoteAddr(const std::string& remoteAddr)
+{
+	_remoteAddr = remoteAddr;
+}
+
+void Request::setRemoteHost(const std::string& remoteHost)
+{
+	_remoteHost = remoteHost;
+}
+
+void Request::addHeader(const std::string& name, const std::string& value)
+{
+	HeaderField field;
+	field.name = name;
+	field.value = value;
+	_headers.push_back(field);
+}
+
+/* ==================== Parse error ==================== */
+
+void Request::setParseError(int code, const std::string& message)
+{
+	_hasParseError = true;
+	_parseErrorCode = code;
+	_parseErrorMessage = message;
+	_type = REQ_ERROR;
+}
+
+bool Request::hasParseError() const
+{
+	return _hasParseError;
+}
+
+int Request::getParseErrorCode() const
+{
+	return _parseErrorCode;
+}
+
+const std::string& Request::getParseErrorMessage() const
+{
+	return _parseErrorMessage;
+}
+
+/* ==================== Getters ==================== */
+
+const std::string& Request::getMethod() const
+{
+	return _method;
+}
+
+e_request_type Request::getType() const
+{
+	return _type;
+}
+
+const std::string& Request::getRequestTarget() const
+{
+	return _requestTarget;
+}
+
+const std::string& Request::getRequestPath() const
+{
+	return _requestPath;
+}
+
+const std::string& Request::getQueryString() const
+{
+	return _queryString;
+}
+
+const std::string& Request::getRequestVersion() const
+{
+	return _requestVersion;
+}
+
+const std::string& Request::getHost() const
+{
+	return _host;
+}
+
+const std::string& Request::getContentType() const
+{
+	return _contentType;
+}
+
+size_t Request::getContentLength() const
+{
+	return _contentLength;
+}
+
+bool Request::hasContentLength() const
+{
+	return _hasContentLength;
+}
+
+const std::string& Request::getBody() const
+{
+	return _body;
+}
+
+int Request::getClientFD() const
+{
+	return _clientFD;
+}
+
+const std::string& Request::getRemoteAddr() const
+{
+	return _remoteAddr;
+}
+
+const std::string& Request::getRemoteHost() const
+{
+	return _remoteHost;
+}
+
+const std::vector<HeaderField>& Request::getHeaders() const
+{
+	return _headers;
+}
+
+/* ==================== Helpers ==================== */
+
+bool Request::hasHeader(const std::string& name) const
+{
+	std::vector<HeaderField>::const_iterator it = _headers.begin();
+	std::vector<HeaderField>::const_iterator end = _headers.end();
+
+	while (it != end)
 	{
-		std::ostringstream err;
-		err << vars->errorCode << " " << vars->errorMessage;
-		message = err.str();
-
-		if (vars->errorCode == 400)
-			statusLine = "HTTP/1.1 400 Bad Request\r\n";
-		else if (vars->errorCode == 405)
-			statusLine = "HTTP/1.1 405 Method Not Allowed\r\n";
-		else if (vars->errorCode == 505)
-			statusLine = "HTTP/1.1 505 HTTP Version Not Supported\r\n";
-		else
-			statusLine = "HTTP/1.1 500 Internal Server Error\r\n";
+		if (it->name == name)
+			return true;
+		++it;
 	}
-
-	std::string body = "<html><body><h1>" + message + "</h1></body></html>";
-
-	std::ostringstream oss;
-	oss << body.size();
-	std::string contentLength = oss.str();
-
-	std::string response =
-		statusLine +
-		"Content-Type: text/html\r\n"
-		"Content-Length: " + contentLength + "\r\n"
-		"Connection: close\r\n"
-		"\r\n" +
-		body;
-
-	send(vars->clientFD, response.c_str(), response.size(), 0);
+	return false;
 }
 
-const reqVariables& Request::getVariables() const
+std::string Request::getHeaderValue(const std::string& name) const
 {
-	return *vars;
+	std::vector<HeaderField>::const_iterator it = _headers.begin();
+	std::vector<HeaderField>::const_iterator end = _headers.end();
+
+	while (it != end)
+	{
+		if (it->name == name)
+			return it->value;
+		++it;
+	}
+	return "";
 }
 
-Location* Request::getLocation() const
+bool Request::isGet() const
 {
-	return _location;
+	return _type == REQ_GET;
 }
 
+bool Request::isPost() const
+{
+	return _type == REQ_POST;
+}
 
-
+bool Request::isDelete() const
+{
+	return _type == REQ_DELETE;
+}
