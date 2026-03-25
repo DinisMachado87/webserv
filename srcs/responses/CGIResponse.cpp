@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 12:13:37 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 12:38:17 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -134,7 +134,7 @@ void	CGIResponse::setEnvironment(void)
 	if (contentLength >= 0)
 	{
 		char	buf[32];
-		::snprintf(buf, 32, "%ld", contentLength);
+		::snprintf(buf, 32, "%d", contentLength);
 		setenv("CONTENT_LENGTH", buf, 1);
 	}
 	// else

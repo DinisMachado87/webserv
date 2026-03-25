@@ -44,4 +44,4 @@ protected:
 	Response &	operator=(const Response &other);
 };
 
-void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over);
+void	initialise_everything(Location* loc, Request* req, Overrides* over);

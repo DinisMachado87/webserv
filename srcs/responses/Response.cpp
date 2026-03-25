@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 12:17:06 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 12:39:37 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,20 +53,20 @@ void	Response::getTime(char* buf, int bufSize)
 	std::strftime(buf, bufSize, "%a, %d %b %Y %H:%M:%S", std::localtime(&current));
 }
 
-/* void	initialise_everything(Location* loc, Request* req, Overrides* over)
+void	initialise_everything(Location* loc, Request* req, Overrides* over)
 {
 	(void)loc;
 	(void)req;
 	(void)over;
-	vars->method = REQ_POST;
-	vars->body = "<body> here is some body </body>";
-	vars->contentLength = vars->body.size();
+	req->setType(REQ_POST);
+	req->setBody("<body> here is some body </body>");
+	req->setContentLength(req->getBody().size());
 	// vars->port = 5555;
-	vars->requestPath = "hello.cgi";
+	req->setFilePath("index.html");
 	// vars->contentType =
-	vars->requestPath = "teams/users";
-	vars->queryString = "query=hi";
-	vars->scriptName = "hello.cgi";
-	vars->remoteAddr = "175.0.0.23";
-	vars->remoteHost = "client.com";
-} */
+	req->setRequestPath("teams/users");
+	req->setQueryString("query=hi");
+	// vars->scriptName = "hello.cgi";
+	req->setRemoteAddr("175.0.0.23");
+	req->setRemoteHost("client.com");
+}

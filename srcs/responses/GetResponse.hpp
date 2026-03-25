@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/26 16:40:12 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/23 15:27:47 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 12:22:02 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,14 +17,15 @@
 class	GetResponse : public Response
 {
 public:
-	GetResponse(Location* loc, reqVariables* vars);
+	GetResponse(Location* loc, Request* req);
 	~GetResponse(void);
 	bool			sendResponse(const int& clientFD, const int &port);
 
 
 
 	private:
-	int		generateHeader(void);
+	int	generateHeader(void);
+	int	setResponseBody(void);
 
 
 	GetResponse(const GetResponse &other);
