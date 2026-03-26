@@ -34,7 +34,7 @@ protected:
 	std::string		_responseHeader;
 	std::string		_responseBody;
 	Request*		_request;
-	virtual bool	sendResponse(const int &clientFD, const int &port);
+	virtual bool	sendResponse(const int &clientFD);
 	virtual int		generateHeader(void) = 0;
 	void			getTime(char* buf, int bufSize);
 

@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 12:39:37 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 17:17:05 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,9 +37,8 @@ int	Response::generateHeader(void)
 	return 0;
 }
 
-bool	Response::sendResponse(const int &clientFD, const int &port)
+bool	Response::sendResponse(const int &clientFD)
 {
-	(void) port;			//only needed for CGI
 	generateHeader();
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
@@ -62,7 +61,7 @@ void	initialise_everything(Location* loc, Request* req, Overrides* over)
 	req->setBody("<body> here is some body </body>");
 	req->setContentLength(req->getBody().size());
 	// vars->port = 5555;
-	req->setFilePath("index.html");
+	req->setFilePath("hello.cgi");
 	// vars->contentType =
 	req->setRequestPath("teams/users");
 	req->setQueryString("query=hi");

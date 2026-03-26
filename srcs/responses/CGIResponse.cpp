@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 12:38:17 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/26 11:15:31 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,12 @@
 
 
 
-CGIResponse::CGIResponse(Location* loc, Request* req) : Response(loc, req)
+CGIResponse::CGIResponse(Location* loc, Request* req, const int& port) : Response(loc, req)
 {
-
+	_headerSent = 0;
+	_port = port;
+	runCGI();
+	generateHeader();
 }
 CGIResponse::~CGIResponse(void)
 {
@@ -33,20 +36,38 @@ int	CGIResponse::generateHeader(void)
 	header << "Server: " << SERVER_NAME << "\r\n";
 	if (_responseBody.size() > 0)
 		header << "Content-Length: " << _responseBody.size() << "\r\n";
+	header << "Transfer-Encoding: chunked\r\n";
 	header << "\r\n";
 	_responseHeader = header.str();
 	return 0;
 }
 
-bool	CGIResponse::sendResponse(const int &clientFD, const int &port)
+bool	CGIResponse::sendResponse(const int &clientFD)
 {
-	_port = port;
-	if (runCGI() != 0)
-		return (1);
-	generateHeader();
-	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
-	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	if (!_headerSent)
+	{
+		send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0); //work out how to send this again when in another response
+		write(1, _responseHeader.c_str(), _responseHeader.size());
+		_headerSent = 1;
+	}
+	static ssize_t	chunk = CHUNK_SIZE;
+	static ssize_t	totalSent = 0;
+	static ssize_t	bodySize = _responseBody.size();
+	if (totalSent >= bodySize)
+	{
+		send(clientFD, "0\r\n\r\n", 5, 0);
+		return 0;
+	}
+	int	toSend = std::min(chunk, bodySize - totalSent);
+	std::string	hex = toHex(toSend);
+	send(clientFD, hex.c_str(), hex.size(), 0);
+	write(1, hex.c_str(), hex.size());
+	send(clientFD, _responseBody.c_str() + totalSent, toSend, 0);
+	write(1, _responseBody.c_str() + totalSent, toSend);
+	send(clientFD, "\r\n", 2, 0);
+	write(1, "\r\n", 2);
+	totalSent += toSend;
+	// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	return 1;
 }
 
@@ -67,7 +88,6 @@ int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 	execve (fileName, argv, environ);
 	(void)argv;
 	perror("child execution");
-	// write(1, "lalala", 6);
 	exit (1);
 }
 
@@ -98,7 +118,7 @@ int		CGIResponse::runCGI(void)
 	if (WIFEXITED(status))
 		status = WEXITSTATUS(status);
 	ssize_t	res = 1;
-	ssize_t	chunk = 8132;
+	ssize_t	chunk = 8192;
 	ssize_t	size;
 	ssize_t	oldSize = 0;
 	this->_responseBody.resize(chunk);
@@ -112,7 +132,10 @@ int		CGIResponse::runCGI(void)
 		this->_responseBody.resize(size + chunk);
 	}
 	if (res != -1)
-		this->_responseBody.resize(oldSize + res);
+	{
+		size = strlen(_responseBody.c_str());
+		this->_responseBody.resize(strlen(_responseBody.c_str()));
+	}
 	printf("[written: %lu] [status: %d]\n\n", this->_responseBody.size(), status);
 	close(pipeC2P[0]);
 	return (0);
@@ -231,4 +254,11 @@ void	CGIResponse::setEnvironment(void)
 		setenv("SERVER_SOFTWARE", SERVER_NAME, 1);
 	// else
 	// 	setenv("SERVER_SOFTWARE", "NULL", 1);
+}
+
+std::string	toHex(int val)
+{
+	std::ostringstream	oss;
+	oss << std::hex << val << "\r\n";
+	return oss.str();
 }
