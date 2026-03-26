@@ -20,8 +20,8 @@ SRCS_MAIN		:= main.cpp
 # Sources modules (first word is the directory)
 SRCS_ENGINE		:= engine Engine.cpp
 SRCS_SERVER		:= server Server.cpp
-SRCS_SOCKET		:= sockets ASocket.cpp Listening.cpp Connection.cpp
-SRCS_PARSER		:= parser Token.cpp ConfParser.cpp Expect.cpp
+SRCS_SOCKET		:= sockets ASocket.cpp Listening.cpp Connection.cpp Request.cpp
+SRCS_PARSER		:= parser Token.cpp Expect.cpp ConfParser.cpp HttpParser.cpp
 SRCS_UTILS		:= utils StrView.cpp
 
 SRC_GROUPS		:= SRCS_ENGINE SRCS_SERVER SRCS_SOCKET SRCS_PARSER SRCS_UTILS
@@ -39,8 +39,9 @@ endef
 SRCS_CORE		:= $(foreach group,$(SRC_GROUPS),$(call make_paths,$($(group))))
 SRCS_TEST_CORE	:= $(foreach group,$(SRC_GROUPS),$(call make_test_paths,$($(group))))
 
+
 # Extract module directories from source groups
-MODULES			:= $(foreach group,$(SRC_GROUPS),$(word 1,$($(group)))) $(ENGINE_DIR) $(UTILS_DIR)
+MODULES			:= $(foreach group,$(SRC_GROUPS),$(word 1,$($(group)))) $(ENGINE_DIR) $(UTILS_DIR) $(SOCKETS_DIR)
 
 # Includes
 INCLUDE_DIRS	:= $(SRC_DIR) $(addprefix $(SRC_DIR)/,$(MODULES))

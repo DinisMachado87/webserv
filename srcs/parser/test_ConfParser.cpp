@@ -23,8 +23,7 @@ protected:
 	enum MethodBits {
 		BIT_GET = 1,
 		BIT_POST = 2,
-		BIT_PUT = 3,
-		BIT_DELETE = 4
+		BIT_DELETE = 3
 	};
 
 	void TearDown() {
@@ -146,7 +145,7 @@ TEST_F(ConfParserTest, LocationAllowedMethods) {
 	parse(
 		"server {\n"
 		"  location / { allowed_methods GET POST; }\n"
-		"  location /api { allowed_methods GET POST PUT DELETE; }\n"
+		"  location /api { allowed_methods GET POST DELETE; }\n"
 		"}"
 	);
 
@@ -155,12 +154,10 @@ TEST_F(ConfParserTest, LocationAllowedMethods) {
 
 	EXPECT_TRUE(hasMethod(location(0, 0), BIT_GET));
 	EXPECT_TRUE(hasMethod(location(0, 0), BIT_POST));
-	EXPECT_FALSE(hasMethod(location(0, 0), BIT_PUT));
 	EXPECT_FALSE(hasMethod(location(0, 0), BIT_DELETE));
 
 	EXPECT_TRUE(hasMethod(location(0, 1), BIT_GET));
 	EXPECT_TRUE(hasMethod(location(0, 1), BIT_POST));
-	EXPECT_TRUE(hasMethod(location(0, 1), BIT_PUT));
 	EXPECT_TRUE(hasMethod(location(0, 1), BIT_DELETE));
 }
 

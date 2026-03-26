@@ -20,7 +20,6 @@ private:
 	const char*	_curStrConfig;
 	uint		_vecCursor;
 	Token		_token;
-	uchar		_curType;
 	Expect		_expect;
 
 	// Explicit disables
