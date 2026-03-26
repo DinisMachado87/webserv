@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 14:00:16 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 17:17:15 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ int	GetResponse::setResponseBody(void)
 {
 	int		fd = open(this->_request->getFilePath().c_str(), O_RDONLY);
 	ssize_t	res = 1;
-	ssize_t	chunk = 8132;
+	ssize_t	chunk = 8192;
 	ssize_t	size;
 	ssize_t	oldSize = 0;
 	this->_responseBody.resize(chunk);
@@ -60,13 +60,14 @@ int	GetResponse::setResponseBody(void)
 	return (0);
 }
 
-bool	GetResponse::sendResponse(const int &clientFD, const int &port)
+
+
+/* bool	GetResponse::sendResponse(const int &clientFD)
 {
-	(void) port;		//only used in CGI;.
 	setResponseBody();
 	generateHeader();
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	return 1;
-}
+} */
