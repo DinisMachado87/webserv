@@ -6,13 +6,13 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/23 14:36:16 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/25 17:17:05 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.hpp"
 
-Response::Response(Location* loc, reqVariables* vars) : _location(loc), _requestVars(vars)
+Response::Response(Location* loc, Request* req) : _location(loc), _request(req)
 {
 
 }
@@ -37,9 +37,8 @@ int	Response::generateHeader(void)
 	return 0;
 }
 
-bool	Response::sendResponse(const int &clientFD, const int &port)
+bool	Response::sendResponse(const int &clientFD)
 {
-	(void) port;			//only needed for CGI
 	generateHeader();
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
@@ -53,20 +52,20 @@ void	Response::getTime(char* buf, int bufSize)
 	std::strftime(buf, bufSize, "%a, %d %b %Y %H:%M:%S", std::localtime(&current));
 }
 
-void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over)
+void	initialise_everything(Location* loc, Request* req, Overrides* over)
 {
 	(void)loc;
-	(void)vars;
+	(void)req;
 	(void)over;
-	vars->method = REQ_POST;
-	vars->body = "<body> here is some body </body>";
-	vars->contentLength = vars->body.size();
+	req->setType(REQ_POST);
+	req->setBody("<body> here is some body </body>");
+	req->setContentLength(req->getBody().size());
 	// vars->port = 5555;
-	vars->requestPath = "hello.cgi";
+	req->setFilePath("hello.cgi");
 	// vars->contentType =
-	vars->requestPath = "teams/users";
-	vars->queryString = "query=hi";
-	vars->scriptName = "hello.cgi";
-	vars->remoteAddr = "175.0.0.23";
-	vars->remoteHost = "client.com";
+	req->setRequestPath("teams/users");
+	req->setQueryString("query=hi");
+	// vars->scriptName = "hello.cgi";
+	req->setRemoteAddr("175.0.0.23");
+	req->setRemoteHost("client.com");
 }

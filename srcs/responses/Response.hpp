@@ -25,16 +25,16 @@
 class	Response
 {
 public:
-	Response(Location* loc, reqVariables* vars);
+	Response(Location* loc, Request* req);
 	virtual ~Response(void);
 
 
 protected:
 	Location*		_location;
-	reqVariables*	_requestVars;
 	std::string		_responseHeader;
 	std::string		_responseBody;
-	virtual bool	sendResponse(const int &clientFD, const int &port);
+	Request*		_request;
+	virtual bool	sendResponse(const int &clientFD);
 	virtual int		generateHeader(void) = 0;
 	void			getTime(char* buf, int bufSize);
 
@@ -44,4 +44,4 @@ protected:
 	Response &	operator=(const Response &other);
 };
 
-void	initialise_everything(Location* loc, reqVariables* vars, Overrides* over);
+void	initialise_everything(Location* loc, Request* req, Overrides* over);

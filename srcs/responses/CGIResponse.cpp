@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/23 14:49:19 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/26 11:15:31 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,12 @@
 
 
 
-CGIResponse::CGIResponse(Location* loc, reqVariables* vars) : Response(loc, vars)
+CGIResponse::CGIResponse(Location* loc, Request* req, const int& port) : Response(loc, req)
 {
-
+	_headerSent = 0;
+	_port = port;
+	runCGI();
+	generateHeader();
 }
 CGIResponse::~CGIResponse(void)
 {
@@ -33,20 +36,38 @@ int	CGIResponse::generateHeader(void)
 	header << "Server: " << SERVER_NAME << "\r\n";
 	if (_responseBody.size() > 0)
 		header << "Content-Length: " << _responseBody.size() << "\r\n";
+	header << "Transfer-Encoding: chunked\r\n";
 	header << "\r\n";
 	_responseHeader = header.str();
 	return 0;
 }
 
-bool	CGIResponse::sendResponse(const int &clientFD, const int &port)
+bool	CGIResponse::sendResponse(const int &clientFD)
 {
-	_port = port;
-	if (runCGI() != 0)
-		return (1);
-	generateHeader();
-	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
-	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	if (!_headerSent)
+	{
+		send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0); //work out how to send this again when in another response
+		write(1, _responseHeader.c_str(), _responseHeader.size());
+		_headerSent = 1;
+	}
+	static ssize_t	chunk = CHUNK_SIZE;
+	static ssize_t	totalSent = 0;
+	static ssize_t	bodySize = _responseBody.size();
+	if (totalSent >= bodySize)
+	{
+		send(clientFD, "0\r\n\r\n", 5, 0);
+		return 0;
+	}
+	int	toSend = std::min(chunk, bodySize - totalSent);
+	std::string	hex = toHex(toSend);
+	send(clientFD, hex.c_str(), hex.size(), 0);
+	write(1, hex.c_str(), hex.size());
+	send(clientFD, _responseBody.c_str() + totalSent, toSend, 0);
+	write(1, _responseBody.c_str() + totalSent, toSend);
+	send(clientFD, "\r\n", 2, 0);
+	write(1, "\r\n", 2);
+	totalSent += toSend;
+	// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	return 1;
 }
 
@@ -67,7 +88,6 @@ int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 	execve (fileName, argv, environ);
 	(void)argv;
 	perror("child execution");
-	// write(1, "lalala", 6);
 	exit (1);
 }
 
@@ -90,14 +110,15 @@ int		CGIResponse::runCGI(void)
 		this->childProcess(pipeP2C, pipeC2P);
 	close(pipeP2C[0]);
 	close(pipeC2P[1]);
-	write(pipeP2C[1], this->_requestVars->body.c_str(), this->_requestVars->body.size());
+	const std::string& body = this->_request->getBody();
+	write(pipeP2C[1], body.c_str(), body.size());
 	close(pipeP2C[1]);
 	int	status = 0;
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status))
 		status = WEXITSTATUS(status);
 	ssize_t	res = 1;
-	ssize_t	chunk = 8132;
+	ssize_t	chunk = 8192;
 	ssize_t	size;
 	ssize_t	oldSize = 0;
 	this->_responseBody.resize(chunk);
@@ -111,7 +132,10 @@ int		CGIResponse::runCGI(void)
 		this->_responseBody.resize(size + chunk);
 	}
 	if (res != -1)
-		this->_responseBody.resize(oldSize + res);
+	{
+		size = strlen(_responseBody.c_str());
+		this->_responseBody.resize(strlen(_responseBody.c_str()));
+	}
 	printf("[written: %lu] [status: %d]\n\n", this->_responseBody.size(), status);
 	close(pipeC2P[0]);
 	return (0);
@@ -129,25 +153,27 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("AUTH_TYPE", "NULL", 1);
 
-	if (this->_requestVars->contentLength >= 0)
+	const int& contentLength = this->_request->getContentLength();
+	if (contentLength >= 0)
 	{
 		char	buf[32];
-		::snprintf(buf, 32, "%ld", this->_requestVars->contentLength);
+		::snprintf(buf, 32, "%d", contentLength);
 		setenv("CONTENT_LENGTH", buf, 1);
 	}
 	// else
 	// 	setenv("CONTENT_LENGTH", "", 1);
 
-	if (!this->_requestVars->contentType.empty())
-		setenv("CONTENT_TYPE", this->_requestVars->contentType.c_str(), 1);
+	const std::string& contentType = this->_request->getContentType();
+	if (!contentType.empty())
+		setenv("CONTENT_TYPE", contentType.c_str(), 1);
 	// else
 	// 	setenv("CONTENT_TYPE", "", 1);
 
 	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
 
-
-	if (!this->_requestVars->requestPath.empty())
-		setenv("PATH_INFO", this->_requestVars->requestPath.c_str(), 1);
+	const std::string& requestPath = this->_request->getRequestPath();
+	if (!requestPath.empty())
+		setenv("PATH_INFO", requestPath.c_str(), 1);
 	else
 		setenv("PATH_INFO", "", 1);
 
@@ -156,18 +182,21 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("PATH_TRANSLATED", "NULL", 1);
 
-	if (!this->_requestVars->queryString.empty())
-		setenv("QUERY_STRING", this->_requestVars->queryString.c_str(), 1);
+	const std::string& queryString = this->_request->getQueryString();
+	if (!queryString.empty())
+		setenv("QUERY_STRING", queryString.c_str(), 1);
 	// else
 	// 	setenv("QUERY_STRING", "NULL", 1);
 
-	if (!this->_requestVars->remoteAddr.empty())
-		setenv("REMOTE_ADDR", this->_requestVars->remoteAddr.c_str(), 1);
+	const std::string& remoteAddr = this->_request->getRemoteAddr();
+	if (!remoteAddr.empty())
+		setenv("REMOTE_ADDR", remoteAddr.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_ADDR", "NULL", 1);
 
-	if (!this->_requestVars->remoteHost.empty())
-		setenv("REMOTE_HOST", this->_requestVars->remoteHost.c_str(), 1);
+	const std::string& remoteHost = this->_request->getRemoteHost();
+	if (!remoteHost.empty())
+		setenv("REMOTE_HOST", remoteHost.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_HOST", "NULL", 1);
 
@@ -181,7 +210,8 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("REMOTE_USER", "NULL", 1);
 
-	switch (this->_requestVars->type) {
+
+	switch (this->_request->getType()) {
 		case REQ_GET:
 			setenv("REQUEST_METHOD", "GET", 1);
 			break ;
@@ -197,8 +227,9 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("REQUEST_METHOD", "NULL", 1);
 
-	if (!this->_requestVars->scriptName.empty())
-		setenv("SCRIPT_NAME", this->_requestVars->scriptName.c_str(), 1);
+	const std::string& scriptName = this->_request->getFilePath();
+	if (!scriptName.empty())
+		setenv("SCRIPT_NAME", scriptName.c_str(), 1);
 	// else
 	// 	setenv("SCRIPT_NAME", "NULL", 1);
 
@@ -223,4 +254,11 @@ void	CGIResponse::setEnvironment(void)
 		setenv("SERVER_SOFTWARE", SERVER_NAME, 1);
 	// else
 	// 	setenv("SERVER_SOFTWARE", "NULL", 1);
+}
+
+std::string	toHex(int val)
+{
+	std::ostringstream	oss;
+	oss << std::hex << val << "\r\n";
+	return oss.str();
 }
