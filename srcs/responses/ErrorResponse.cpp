@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/27 15:01:10 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/27 15:02:57 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,18 +77,6 @@ int	ErrorResponse::setResponseBody(void)
 	_responseBody = body.str();
 	return (0);
 }
-
-
-
-/* bool	ErrorResponse::sendResponse(const int &clientFD)
-{
-	setResponseBody();
-	generateHeader();
-	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
-	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 1;
-} */
 
 std::map<uint, const char*>	makeTitles(void)
 {
