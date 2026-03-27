@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 17:17:05 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/27 11:59:28 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,7 @@ int	Response::generateHeader(void)
 
 bool	Response::sendResponse(const int &clientFD)
 {
+	setResponseBody();
 	generateHeader();
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
@@ -57,6 +58,7 @@ void	initialise_everything(Location* loc, Request* req, Overrides* over)
 	(void)loc;
 	(void)req;
 	(void)over;
+	req->setParseError(403, "lalaerrorla");
 	req->setType(REQ_POST);
 	req->setBody("<body> here is some body </body>");
 	req->setContentLength(req->getBody().size());

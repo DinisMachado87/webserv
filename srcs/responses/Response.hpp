@@ -26,7 +26,8 @@ class	Response
 {
 public:
 	Response(Location* loc, Request* req);
-	virtual ~Response(void);
+	virtual 		~Response(void);
+	virtual bool	sendResponse(const int &clientFD);
 
 
 protected:
@@ -34,11 +35,11 @@ protected:
 	std::string		_responseHeader;
 	std::string		_responseBody;
 	Request*		_request;
-	virtual bool	sendResponse(const int &clientFD);
+	virtual int		setResponseBody() = 0;
 	virtual int		generateHeader(void) = 0;
 	void			getTime(char* buf, int bufSize);
 
-	private:
+private:
 	Response(void);
 	Response(const Response &other);
 	Response &	operator=(const Response &other);

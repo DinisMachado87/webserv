@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/26 11:15:31 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/27 11:20:08 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ CGIResponse::CGIResponse(Location* loc, Request* req, const int& port) : Respons
 {
 	_headerSent = 0;
 	_port = port;
-	runCGI();
+	setResponseBody();
 	generateHeader();
 }
 CGIResponse::~CGIResponse(void)
@@ -91,7 +91,7 @@ int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 	exit (1);
 }
 
-int		CGIResponse::runCGI(void)
+int		CGIResponse::setResponseBody(void)
 {
 	int	pipeP2C[2];
 	int	pipeC2P[2];

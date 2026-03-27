@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/26 16:40:12 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/25 17:17:34 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/26 13:15:37 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ class	GetResponse : public Response
 public:
 	GetResponse(Location* loc, Request* req);
 	~GetResponse(void);
-	// bool			sendResponse(const int& clientFD);
+	// bool	sendResponse(const int& clientFD);
 
 
 
