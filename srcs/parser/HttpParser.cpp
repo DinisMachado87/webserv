@@ -3,22 +3,25 @@
 /*                                                        :::      ::::::::   */
 /*   HttpParser.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aviv <aviv@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:23 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/24 15:23:52 by aviv             ###   ########.fr       */
+/*   Updated: 2026/03/30 14:21:49 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HttpParser.hpp"
 #include "../server/Server.hpp"
+#include "../webServ.hpp"
 #include <cctype>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
 HttpParser::HttpParser()
 {
-	std::cout << "HttpParser constructed\n";
+	_isChunked = false;
+	_chunkState = PARSE_SIZE;
 }
 
 HttpParser::~HttpParser()
@@ -31,7 +34,7 @@ Returns:
 - Request* if request is complete
 - Request* with parse error set if malformed
 */
-Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
+Request* HttpParser::parse(char *rawBuffer, size_t bytesRead)
 {
 
 	bool clearBufferOnError = false;
@@ -43,17 +46,15 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
 	size_t headerEnd = _buffer.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
 	{
-		if (_buffer.size() > 8192)
+		if (_buffer.size() > MAX_HEADER_SIZE) // limit to prevent DoS with huge headers now set to 8KB
 		{
 			_buffer.clear();
-			return makeErrorRequest(clientFD, 431, "Request Header Fields Too Large");
+			return makeErrorRequest(431, "Request Header Fields Too Large");
 		}
 		return NULL;
 	}
 
 	Request* req = new Request();
-	req->setClientFD(clientFD);
-
 	/* Parse only the header section first. */
 	std::string headerBlock = _buffer.substr(0, headerEnd + 4);
 
@@ -69,7 +70,7 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
 	if (!firstLineParse(firstLine, *req))
 		return eraseHeaderAndReturn(req, headerEnd);
 
-	/* Parse all header lines */
+	/* loop through all header lines and parse them */
 	size_t current = lineEnd + 2;
 	while (current < headerBlock.size())
 	{
@@ -102,6 +103,10 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
 		return eraseHeaderAndReturn(req, headerEnd);
 	}
 
+	/* Handle chunked encoding */
+	if (_isChunked)
+		return parseChunkedBody(req, headerEnd);
+
 	/* If there is a body, wait until all body bytes are present. */
 	size_t totalNeeded = headerEnd + 4 + req->getContentLength();
 
@@ -126,10 +131,9 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead, int clientFD)
 }
 
 /* Build an error Request object */
-Request* HttpParser::makeErrorRequest(int clientFD, int code, const std::string& message)
+Request* HttpParser::makeErrorRequest(int code, const std::string& message)
 {
 	Request* req = new Request();
-	req->setClientFD(clientFD);
 	req->setParseError(code, message);
 	return req;
 }
@@ -279,9 +283,18 @@ bool HttpParser::headerParse(const std::string& headerLine, Request& req, bool& 
 	}
 	else if (lowerName == "transfer-encoding")
 	{
-		clearBufferOnError = true;
-		req.setParseError(501, "Transfer-Encoding not supported");
-		return false;
+		std::string lowerValue = toLower(value);
+		if (lowerValue == "chunked")
+		{
+			_isChunked = true;
+			req.setTransferEncoding("chunked");
+		}
+		else
+		{
+			clearBufferOnError = true;
+			req.setParseError(501, "Unsupported Transfer-Encoding");
+			return false;
+		}
 	}
 
 	/* store normalized header name */
@@ -398,16 +411,19 @@ bool HttpParser::validateHeaders(Request& req, bool& clearBufferOnError) const
 		}
 	}
 
-	if (req.getType() == REQ_POST && !req.hasContentLength())
+	if (req.getType() == REQ_POST)
 	{
-		clearBufferOnError = true;
-		req.setParseError(411, "Content Length required");
-		return false;
+		if (!_isChunked && !req.hasContentLength())
+		{
+			clearBufferOnError = true;
+			req.setParseError(411, "Content Length or Transfer-Encoding required");
+			return false;
+		}
 	}
 
 	if (req.hasContentLength())
 	{
-		if (req.getContentLength() > 1024)
+		if (req.getContentLength() > MAX_CONTENT_LENGTH)
 		{
 			clearBufferOnError = true;
 			req.setParseError(413, "Content Too Large");
@@ -433,4 +449,135 @@ bool HttpParser::isValidHeaderName(const std::string& s) const
 		i++;
 	}
 	return true;
+}
+
+bool HttpParser::isHexDigits(const std::string& s) const
+{
+	if (s.empty())
+		return false;
+	for (size_t i = 0; i < s.size(); i++)
+	{
+		unsigned char c = static_cast<unsigned char>(s[i]);
+		if (!std::isxdigit(c))
+			return false;
+	}
+	return true;
+}
+
+/* Parse chunked request body according to HTTP/1.1 chunked transfer encoding */
+Request* HttpParser::parseChunkedBody(Request* req, size_t headerEnd)
+{
+	size_t pos = headerEnd + 4;
+
+	while (pos < _buffer.size())
+	{
+		if (_chunkState == PARSE_SIZE)
+		{
+			/* Look for size line ending with \r\n */
+			size_t lineEnd = _buffer.find("\r\n", pos);
+			if (lineEnd == std::string::npos)
+			{
+				/* Check total accumulated body size */
+				if (_decodedBody.size() > MAX_CONTENT_LENGTH)
+				{
+					_buffer.clear();
+					_decodedBody.clear();
+					_isChunked = false;
+				_chunkState = PARSE_SIZE;
+					req->setParseError(413, "Content Too Large");
+					return req;
+				}
+				return NULL;
+			}
+
+			std::string sizeLine = _buffer.substr(pos, lineEnd - pos);
+			if (!isHexDigits(sizeLine))
+			{
+				_buffer.clear();
+				_decodedBody.clear();
+				_isChunked = false;
+				_chunkState = PARSE_SIZE;
+				req->setParseError(400, "Invalid chunk size");
+				return req;
+			}
+
+			size_t chunkSize = 0;
+			std::istringstream iss(sizeLine);
+			iss >> std::hex >> chunkSize;
+
+			if (iss.fail())
+			{
+				_buffer.clear();
+				_decodedBody.clear();
+				_isChunked = false;
+				_chunkState = PARSE_SIZE;
+				req->setParseError(400, "Invalid chunk size");
+				return req;
+			}
+
+			if (chunkSize == 0)
+			{
+				/* Last chunk, move to trailer parsing */
+				_chunkState = PARSE_TRAILER;
+				pos = lineEnd + 2;
+			}
+			else
+			{
+				/* Move to data parsing for this chunk */
+				_chunkState = PARSE_DATA;
+				pos = lineEnd + 2;
+				/* Store the chunk size for the data phase */
+				req->setChunkSize(chunkSize);
+			}
+		}
+		else if (_chunkState == PARSE_DATA)
+		{
+			size_t chunkSize = req->getChunkSize();
+			size_t available = _buffer.size() - pos;
+
+			if (available < chunkSize + 2) /* +2 for \r\n after data */
+				return NULL;
+
+			/* Extract chunk data */
+			_decodedBody.append(_buffer.substr(pos, chunkSize));
+
+			/* Check total size */
+			if (_decodedBody.size() > MAX_CONTENT_LENGTH)
+			{
+				_buffer.clear();
+				_decodedBody.clear();
+				_isChunked = false;
+				_chunkState = PARSE_SIZE;
+				req->setParseError(413, "Content Too Large");
+				return req;
+			}
+
+			pos += chunkSize + 2; /* +2 for \r\n */
+			_chunkState = PARSE_SIZE;
+		}
+		else if (_chunkState == PARSE_TRAILER)
+		{
+			/* Check if we're at an empty line (marks end of trailers) */
+			if (pos + 1 < _buffer.size() && _buffer[pos] == '\r' && _buffer[pos + 1] == '\n')
+			{
+				/* End of chunked body */
+				pos += 2;
+				req->setBody(_decodedBody);
+				_buffer.erase(0, pos);
+				_decodedBody.clear();
+				_isChunked = false;
+				_chunkState = PARSE_SIZE;
+				return req;
+			}
+
+			/* Otherwise skip this trailer header line */
+			size_t lineEnd = _buffer.find("\r\n", pos);
+			if (lineEnd == std::string::npos)
+				return NULL;
+
+			pos = lineEnd + 2;
+		}
+	}
+
+	return NULL;
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:36 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/25 10:52:54 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/03/30 14:21:57 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,11 @@ public:
 	void setContentType(const std::string& contentType);
 	void setContentLength(size_t contentLength);
 	void setHasContentLength(bool hasContentLength);
+	void setTransferEncoding(const std::string& transferEncoding);
+	void setChunkSize(size_t chunkSize);
+	void setFilePath(const std::string& filePath);
+	void setScriptName(const std::string& scriptName);
+	void setPathInfo(const std::string& pathInfo);
 	void setBody(const std::string& body);
 	void setClientFD(int clientFD);
 	void setRemoteAddr(const std::string& remoteAddr);
@@ -71,6 +76,11 @@ public:
 	const std::string& getContentType() const;
 	size_t getContentLength() const;
 	bool hasContentLength() const;
+	const std::string& getTransferEncoding() const;
+	size_t getChunkSize() const;
+	const std::string& getFilePath() const;
+	const std::string& getScriptName() const;
+	const std::string& getPathInfo() const;
 	const std::string& getBody() const;
 	int getClientFD() const;
 	const std::string& getRemoteAddr() const;
@@ -92,14 +102,19 @@ private:
 private:
 	std::string				_method;
 	e_request_type			_type;
-	std::string				_requestTarget;
-	std::string				_requestPath;
-	std::string				_queryString;
+	std::string				_requestTarget; // the raw target from the request line, before any parsing
+	std::string				_requestPath; // the part before any ? in the target
+	std::string				_queryString; // the part after ? in the target
 	std::string				_requestVersion;
 	std::string				_host;
+	std::string				_scriptName; // the part of the resolved path that corresponds to the CGI script, set by Validator after resolution
+	std::string				_pathInfo; // the part of the resolved path that corresponds to PATH_INFO, set by Validator after resolution
 	std::string				_contentType;
+	std::string				_filePath; // the resolved filesystem path, set by Validator after resolution
+	std::string				_transferEncoding;
 	size_t					_contentLength;
 	bool					_hasContentLength;
+	size_t					_chunkSize;
 	std::string				_body;
 	int						_clientFD;
 	std::string				_remoteAddr;
@@ -138,5 +153,13 @@ know how to serve files
 know how to execute CGI
 know how to create a Response
 
-So Request becomes a real data model object. */
+So Request becomes a real data model object.
+
+URL can split into 3 parts:
+after ? is the query string
+cgi path info will be everything before query
+file path is everything before cgi or html
+
+
+*/
 

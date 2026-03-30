@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpParser.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: aviv <aviv@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:13 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/24 15:24:01 by aviv             ###   ########.fr       */
+/*   Updated: 2026/03/30 14:21:52 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,18 +24,28 @@ public:
 	HttpParser();
 	~HttpParser();
 
-	Request* parse(char *rawBuffer, size_t bytesRead, int clientFD);
+	Request* parse(char *rawBuffer, size_t bytesRead);
 
 private:
 	HttpParser(const HttpParser& other);
 	HttpParser& operator=(const HttpParser& other);
 
+	enum ChunkState {
+		PARSE_SIZE,
+		PARSE_DATA,
+		PARSE_TRAILER,
+		PARSE_DONE
+	};
+
 private:
 	std::string _buffer;
 	std::string _fullMessage;
+	bool _isChunked;
+	std::string _decodedBody;
+	ChunkState _chunkState;
 
 private:
-	Request* makeErrorRequest(int clientFD, int code, const std::string& message);
+	Request* makeErrorRequest(int code, const std::string& message);
 	Request* eraseHeaderAndReturn(Request* err, size_t headerEnd);
 	Request* clearBufferAndReturn(Request* err);
 
@@ -43,10 +53,12 @@ private:
 	bool headerParse(const std::string& headerLine, Request& req, bool& clearBufferOnError);
 	bool parseRequestTarget(const std::string& target, Request& req);
 	bool validateHeaders(Request& req, bool& clearBufferOnError) const;
+	Request* parseChunkedBody(Request* req, size_t headerEnd);
 
 	std::string trimSpaces(const std::string& s) const;
 	std::string toLower(const std::string& s) const;
 	bool isDigits(const std::string& s) const;
+	bool isHexDigits(const std::string& s) const;
 	bool isValidHostValue(const std::string& s) const;
 	bool isValidHeaderName(const std::string& s) const;
 };

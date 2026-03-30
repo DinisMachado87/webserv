@@ -3,32 +3,35 @@
 /*                                                        :::      ::::::::   */
 /*   Validator.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/03/25 10:51:30 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/03/30 14:21:59 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Vaidator.hpp"
+#include "Validator.hpp"
 #include "../server/Server.hpp"
 #include "../responses/Response.hpp"
+#include "../responses/GetResponse.hpp"
+#include "../responses/CGIResponse.hpp"
+#include "../responses/DirectoryResponse.hpp"
 
 #include <cerrno>
 #include <cstdlib>
 #include <iostream>
 #include <sys/stat.h>
 
-Vaidator::Vaidator(const Server& server) :
+Validator::Validator(const Server& server) :
 	_server(server)
 {
 }
 
-Vaidator::~Vaidator()
+Validator::~Validator()
 {
 }
 
-Response* Vaidator::handleRequest(const Request& request)
+Response* Validator::handleRequest(Request& request)
 {
 	const Location* location = NULL;
 
@@ -56,7 +59,7 @@ Response* Vaidator::handleRequest(const Request& request)
 	return makeErrorResponse(405, "Method Not Allowed");
 }
 
-Response* Vaidator::handleGet(const Request& request, const Location* location)
+Response* Validator::handleGet(Request& request, const Location* location)
 {
 	std::string	resolvedPath;
 	std::string	scriptName;
@@ -68,6 +71,7 @@ Response* Vaidator::handleGet(const Request& request, const Location* location)
 	isRegularFile = false;
 
 	resolvedPath = buildResolvedPath(location, request);
+	request.setFilePath(resolvedPath);
 	if (resolvedPath.empty())
 		return makeErrorResponse(500, "Path resolution failed");
 
@@ -76,11 +80,7 @@ Response* Vaidator::handleGet(const Request& request, const Location* location)
 		std::cout << "Resolved CGI script: " << resolvedPath << std::endl;
 		std::cout << "scriptName=" << scriptName
 			<< " pathInfo=" << pathInfo << std::endl;
-
-		/*
-		** Replace with your real CGI response creation.
-		*/
-		return NULL;
+		return new CGIResponse(const_cast<Location*>(location), &request, _server._listen[0].getPort());
 	}
 
 	if (!inspectResolvedPath(resolvedPath, isDirectory, isRegularFile))
@@ -95,13 +95,18 @@ Response* Vaidator::handleGet(const Request& request, const Location* location)
 		<< " _isRegularFile=" << isRegularFile
 		<< " _isCgi=" << isCgiPath(location, resolvedPath) << std::endl;
 
-	/*
-	** Replace with your real GET/file/directory response creation.
-	*/
-	return NULL;
+	if (isDirectory)
+	{
+		if (location->_overrides.isAutoindexed())
+			return new DirectoryResponse(const_cast<Location*>(location), &request);
+		else
+			return makeErrorResponse(403, "Forbidden");
+	}
+
+	return new GetResponse(const_cast<Location*>(location), &request);
 }
 
-Response* Vaidator::handlePost(const Request& request, const Location* location)
+Response* Validator::handlePost(Request& request, const Location* location)
 {
 	std::string	resolvedPath;
 	std::string	scriptName;
@@ -113,6 +118,7 @@ Response* Vaidator::handlePost(const Request& request, const Location* location)
 	isRegularFile = false;
 
 	resolvedPath = buildResolvedPath(location, request);
+	request.setFilePath(resolvedPath);
 	if (resolvedPath.empty())
 		return makeErrorResponse(500, "Path resolution failed");
 
@@ -121,11 +127,7 @@ Response* Vaidator::handlePost(const Request& request, const Location* location)
 		std::cout << "Resolved CGI script: " << resolvedPath << std::endl;
 		std::cout << "scriptName=" << scriptName
 			<< " pathInfo=" << pathInfo << std::endl;
-
-		/*
-		** Replace with your real CGI POST response creation.
-		*/
-		return NULL;
+		return new CGIResponse(const_cast<Location*>(location), &request, _server._listen[0].getPort());
 	}
 
 	if (!inspectResolvedPath(resolvedPath, isDirectory, isRegularFile))
@@ -140,13 +142,10 @@ Response* Vaidator::handlePost(const Request& request, const Location* location)
 		<< " _isRegularFile=" << isRegularFile
 		<< " _isCgi=" << isCgiPath(location, resolvedPath) << std::endl;
 
-	/*
-	** Replace with your real POST response creation.
-	*/
-	return NULL;
+	return new GetResponse(const_cast<Location*>(location), &request);
 }
 
-Response* Vaidator::handleDelete(const Request& request, const Location* location)
+Response* Validator::handleDelete(Request& request, const Location* location)
 {
 	std::string	resolvedPath;
 	bool		isDirectory;
@@ -156,6 +155,7 @@ Response* Vaidator::handleDelete(const Request& request, const Location* locatio
 	isRegularFile = false;
 
 	resolvedPath = buildResolvedPath(location, request);
+	request.setFilePath(resolvedPath);
 	if (resolvedPath.empty())
 		return makeErrorResponse(500, "Path resolution failed");
 
@@ -175,17 +175,14 @@ Response* Vaidator::handleDelete(const Request& request, const Location* locatio
 	std::cout << "_isDirectory=" << isDirectory
 		<< " _isRegularFile=" << isRegularFile << std::endl;
 
-	/*
-	** Replace with your real DELETE response creation.
-	*/
-	return NULL;
+	return new GetResponse(const_cast<Location*>(location), &request);
 }
 
 /*
 ** Finds the best matching location block (longest prefix match)
 ** for the request path.
 */
-const Location* Vaidator::matchLocation(const Request& request) const
+const Location* Validator::matchLocation(const Request& request) const
 {
 	size_t				i;
 	size_t				bestLen;
@@ -236,7 +233,7 @@ const Location* Vaidator::matchLocation(const Request& request) const
 	return best;
 }
 
-bool Vaidator::isMethodAllowed(const Location* location, const Request& request) const
+bool Validator::isMethodAllowed(const Location* location, const Request& request) const
 {
 	if (location == NULL)
 		return false;
@@ -249,7 +246,7 @@ bool Vaidator::isMethodAllowed(const Location* location, const Request& request)
 	return false;
 }
 
-bool Vaidator::validateRequest(const Request& request, const Location* location) const
+bool Validator::validateRequest(const Request& request, const Location* location) const
 {
 	(void)location;
 
@@ -265,8 +262,7 @@ bool Vaidator::validateRequest(const Request& request, const Location* location)
 	return true;
 }
 
-std::string Vaidator::buildResolvedPath(const Location* location,
-	const Request& request) const
+std::string Validator::buildResolvedPath(const Location* location, const Request& request) const
 {
 	const char*	rootC;
 	const char*	locPathC;
@@ -291,9 +287,7 @@ std::string Vaidator::buildResolvedPath(const Location* location,
 	return buildResolvedPathFromUrl(rootC, locPathC, request.getRequestPath());
 }
 
-std::string Vaidator::buildResolvedPathFromUrl(const std::string& root,
-	const std::string& locationPath,
-	const std::string& requestPath) const
+std::string Validator::buildResolvedPathFromUrl(const std::string& root, const std::string& locationPath, const std::string& requestPath) const
 {
 	std::string	suffix;
 	std::string	result;
@@ -317,13 +311,11 @@ std::string Vaidator::buildResolvedPathFromUrl(const std::string& root,
 	return result;
 }
 
-bool Vaidator::inspectResolvedPath(const std::string& resolvedPath,
-	bool& isDirectory,
-	bool& isRegularFile) const
+bool Validator::inspectResolvedPath(const std::string& resolvedPath, bool& isDirectory,	bool& isRegularFile) const
 {
 	struct stat	st;
 
-	if (stat(resolvedPath.c_str(), &st) == -1)
+	if (stat(resolvedPath.c_str(), &st) == -1) // stat fills the stat struct with info about the file at resolvedPath, or returns -1 on error
 		return false;
 
 	isDirectory = S_ISDIR(st.st_mode);
@@ -331,7 +323,7 @@ bool Vaidator::inspectResolvedPath(const std::string& resolvedPath,
 	return true;
 }
 
-bool Vaidator::isCgiPath(const Location* location,
+bool Validator::isCgiPath(const Location* location,
 	const std::string& resolvedPath) const
 {
 	size_t		dot;
@@ -350,7 +342,7 @@ bool Vaidator::isCgiPath(const Location* location,
 	return (cgiExec != NULL);
 }
 
-bool Vaidator::resolveCgiScript(const Location* location,
+bool Validator::resolveCgiScript(const Location* location,
 	const Request& request,
 	std::string& scriptName,
 	std::string& pathInfo,
@@ -415,7 +407,7 @@ bool Vaidator::resolveCgiScript(const Location* location,
 	return false;
 }
 
-Response* Vaidator::makeErrorResponse(int code, const std::string& message) const
+Response* Validator::makeErrorResponse(int code, const std::string& message) const
 {
 	(void)code;
 	(void)message;
@@ -428,7 +420,7 @@ Response* Vaidator::makeErrorResponse(int code, const std::string& message) cons
 	return NULL;
 }
 
-Response* Vaidator::makeMethodNotAllowedResponse(const Location* location) const
+Response* Validator::makeMethodNotAllowedResponse(const Location* location) const
 {
 	(void)location;
 

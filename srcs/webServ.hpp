@@ -9,6 +9,10 @@
 #define TIMEOUT 1000
 #define CHUNK_SIZE 1000
 
+// HTTP Parser Limits
+#define MAX_HEADER_SIZE 8192
+#define MAX_CONTENT_SIZE 1024
+
 typedef unsigned int uint;
 typedef unsigned char uchar;
 

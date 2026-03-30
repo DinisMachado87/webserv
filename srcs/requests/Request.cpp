@@ -8,9 +8,14 @@ Request::Request() :
 	_queryString(),
 	_requestVersion(),
 	_host(),
+	_scriptName(),
+	_pathInfo(),
 	_contentType(),
+	_filePath(),
+	_transferEncoding(),
 	_contentLength(0),
 	_hasContentLength(false),
+	_chunkSize(0),
 	_body(),
 	_clientFD(-1),
 	_remoteAddr(),
@@ -76,6 +81,31 @@ void Request::setContentLength(size_t contentLength)
 void Request::setHasContentLength(bool hasContentLength)
 {
 	_hasContentLength = hasContentLength;
+}
+
+void Request::setTransferEncoding(const std::string& transferEncoding)
+{
+	_transferEncoding = transferEncoding;
+}
+
+void Request::setChunkSize(size_t chunkSize)
+{
+	_chunkSize = chunkSize;
+}
+
+void Request::setFilePath(const std::string& filePath)
+{
+	_filePath = filePath;
+}
+
+void Request::setScriptName(const std::string& scriptName)
+{
+	_scriptName = scriptName;
+}
+
+void Request::setPathInfo(const std::string& pathInfo)
+{
+	_pathInfo = pathInfo;
 }
 
 void Request::setBody(const std::string& body)
@@ -181,6 +211,31 @@ size_t Request::getContentLength() const
 bool Request::hasContentLength() const
 {
 	return _hasContentLength;
+}
+
+const std::string& Request::getTransferEncoding() const
+{
+	return _transferEncoding;
+}
+
+size_t Request::getChunkSize() const
+{
+	return _chunkSize;
+}
+
+const std::string& Request::getFilePath() const
+{
+	return _filePath;
+}
+
+const std::string& Request::getScriptName() const
+{
+	return _scriptName;
+}
+
+const std::string& Request::getPathInfo() const
+{
+	return _pathInfo;
 }
 
 const std::string& Request::getBody() const

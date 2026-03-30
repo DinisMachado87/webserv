@@ -11,26 +11,29 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
+using std::ifstream;
 using std::runtime_error;
 using std::string;
-using std::ifstream;
 
 // Public constructors and destructors
-Connection::Connection(int fd, const Server& server, struct sockaddr_in serverAddr):
+Connection::Connection(int fd, const Server &server,
+					   struct sockaddr_in serverAddr) :
 	ASocket(fd, server, serverAddr) {}
 
 Connection::~Connection() {}
 
 // Public Methods
-Connection*	Connection::handleIn() {
-	char	buffer[CHUNK_SIZE + 1];
-	size_t	bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
-	if (bitesRead > 0)
-		_request = _parser.parse(buffer, bitesRead, _fd, _server);
-	if (_request)
-		_request->respond();
-	
+Connection *Connection::handleIn() {
+	char buffer[CHUNK_SIZE + 1];
+	size_t bitesRead = recv(_fd, buffer, CHUNK_SIZE, 0);
+	buffer[bitesRead] = '\0';
+
+	write(1, buffer, bitesRead);
+	write(1, "\n___\n", 5);
+
 	return NULL;
 };
 
-void		Connection::handleOut() { };
+void Connection::handleOut() {
+
+};

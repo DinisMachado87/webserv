@@ -5,13 +5,13 @@
 #include "Token.hpp"
 #include <cstddef>
 #include <map>
+#include <netinet/in.h>
 #include <string>
 #include <vector>
 
 class Expect {
 private:
 	Token&				_token;
-	unsigned char&		_curType;
 
 	// Explicit disables
 	Expect(const Expect& other);
@@ -20,23 +20,26 @@ private:
 	// Helpers
 	long				number(const char** endPtr);
 	size_t				applySizeUnit(size_t value, char unit);
-	std::runtime_error	parsingErr(const char* expected) const;
 
 public:
 	// Constructors and destructors
-	Expect(Token& token, unsigned char& curType);
+	Expect(Token& token);
 	~Expect();
 
 	// Methods
-	int nextInteger();
-	void			errorPage(std::map<uint, StrView>& errorMap, std::string& strBuf);
-	unsigned char	word(const char *str1);
-	Span<StrView>	wordVec(std::vector<StrView>& vecBuf, unsigned int& vecCursor);
-	bool			onOff();
-	int				integer();
-	size_t			size();
-	void			paths(StrView* paths, int n);
-	void			path(StrView* dest);
+	std::runtime_error	parsingErr(const char* expected) const;
+	uchar				method();
+	uint16_t			port(const std::string& portStr);
+	in_addr_t			ip(std::string& ipStr);
+	int					nextInteger();
+	void				errorPage(std::map<uint, StrView>& errorMap, std::string& strBuf);
+	unsigned char		word(const char *str1);
+	Span<StrView>		wordVec(std::vector<StrView>& vecBuf, uint& vecCursor);
+	bool				onOff();
+	int					integer();
+	size_t				size();
+	void				paths(StrView* paths, int n);
+	void				path(StrView* dest);
 };
 
 #endif
