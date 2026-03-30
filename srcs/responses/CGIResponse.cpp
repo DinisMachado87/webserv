@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/27 11:20:08 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/30 17:27:31 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,8 +71,34 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 	return 1;
 }
 
+static int	executeCGI(void)
+{
+	char*	fileName = getenv("SCRIPT_NAME");
+	char*	argv[] = { fileName, NULL };
+	execve (fileName, argv, environ);
+	return 1;
+}
+
+static int	executePython(void)
+{
+	char*	fileName = getenv("SCRIPT_NAME");
+	char	py[17] = "/usr/bin/python3";
+	char*	argv[] = { (char*)&py[0], fileName, NULL };
+	execve ((char*)&py[0], argv, environ);
+	return 1;
+}
+
+static int	executePHP(void)
+{
+	char*	fileName = getenv("SCRIPT_NAME");
+	char	php[13] = "/usr/bin/php";
+	char*	argv[] = { (char*)&php[0], fileName, NULL };
+	execve ((char*)&php[0], argv, environ);
+	return 1;
+}
 int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 {
+	_CGIFileType = PHP;
 	this->setEnvironment();
 	close(pipeC2P[0]);
 	close(pipeP2C[1]);
@@ -81,12 +107,18 @@ int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 		perror("dup2");
 		exit(1);
 	}
-	char*	fileName = getenv("SCRIPT_NAME");
-	char* argv[] = { fileName, NULL };
 	close(pipeC2P[1]);
 	close(pipeP2C[0]);
-	execve (fileName, argv, environ);
-	(void)argv;
+	switch (_CGIFileType) {
+		case CGI:
+			executeCGI();
+			break ;
+		case PY:
+			executePython();
+			break ;
+		case PHP:
+			executePHP();
+	}
 	perror("child execution");
 	exit (1);
 }
@@ -228,6 +260,7 @@ void	CGIResponse::setEnvironment(void)
 	// 	setenv("REQUEST_METHOD", "NULL", 1);
 
 	const std::string& scriptName = this->_request->getFilePath();
+	std::cout << "script name: " << scriptName << std::endl;
 	if (!scriptName.empty())
 		setenv("SCRIPT_NAME", scriptName.c_str(), 1);
 	// else
