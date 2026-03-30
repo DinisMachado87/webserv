@@ -50,16 +50,6 @@ const uchar *Token::configDelimiters() {
 	isDelimiter[';'] = SEMICOLON;
 	isDelimiter['\\'] = EXCAPE;
 	isDelimiter['\0'] = ENDOFILE;
-	isDelimiter['0'] = DIGIT;
-	isDelimiter['1'] = DIGIT;
-	isDelimiter['2'] = DIGIT;
-	isDelimiter['3'] = DIGIT;
-	isDelimiter['4'] = DIGIT;
-	isDelimiter['5'] = DIGIT;
-	isDelimiter['6'] = DIGIT;
-	isDelimiter['7'] = DIGIT;
-	isDelimiter['8'] = DIGIT;
-	isDelimiter['9'] = DIGIT;
 	return isDelimiter;
 }
 
