@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/27 11:59:28 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/30 17:27:38 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,7 @@ void	initialise_everything(Location* loc, Request* req, Overrides* over)
 	req->setBody("<body> here is some body </body>");
 	req->setContentLength(req->getBody().size());
 	// vars->port = 5555;
-	req->setFilePath("hello.cgi");
+	req->setFilePath("hello.php");
 	// vars->contentType =
 	req->setRequestPath("teams/users");
 	req->setQueryString("query=hi");
