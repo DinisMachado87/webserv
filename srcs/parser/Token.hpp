@@ -20,6 +20,7 @@ protected:
 
 	size_t _strBuffSize;
 	std::vector<StrView *> _tokensInUse;
+	size_t _vecBuffConsolidationIndex;
 
 private:
 	// Explicit disables
@@ -52,6 +53,11 @@ public:
 	static const uchar *configDelimiters();
 
 	// Methods
+	void resetSpanConsolidationIndex();
+	void consolidateBuffers(std::vector<StrView> &vecBuf,
+							std::string &newStrBuf);
+	void consolidateStrVSpans(std::vector<StrView> &vecBuf,
+							  std::string &newStrBuf);
 	uchar loadHttpNewLine();
 	void loadNextChunk(const size_t size);
 	bool loadNextHex(size_t *ret);

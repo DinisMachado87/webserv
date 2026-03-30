@@ -93,7 +93,14 @@ protected:
 	std::string _strBuf;
 	std::vector<StrView> _strvVecBuf;
 	std::vector<uint> _intVecBuf;
-	// Private vars
+	// Private methods
+	std::string formatIP(in_addr_t addr) const;
+	size_t getListenLen();
+	size_t getLoncationsLen();
+	void printBufferSizes() const;
+	void printLocation(const Location &loc, size_t index) const;
+	void printOverrides(const Overrides &over, const char *label) const;
+	const char *safeStr(const char *str) const;
 
 public:
 	// Constructors and destructors
@@ -105,10 +112,8 @@ public:
 	Overrides _defaults;
 	// Methods
 	void reserve(uint sizeStrBuf, uint sizeStrvVecBuf, uint sizeintVecBuf);
-
 	// Getters Server Vars
-	size_t getListenLen();
-	size_t getLoncationsLen();
+	void print() const;
 };
 
 #endif

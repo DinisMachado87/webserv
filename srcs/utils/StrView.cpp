@@ -2,6 +2,7 @@
 #include "webServ.hpp"
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <string>
 #include <unistd.h>
 
@@ -100,6 +101,10 @@ bool StrView::ncompare(const char *str, size_t len) const {
 
 void StrView::move(std::string &toBuffer) {
 	int offset = toBuffer.length();
+
+	std::cout << "moving: ";
+	printStrV();
+
 	toBuffer.append(getStart(), _len);
 	toBuffer.push_back('\0');
 	_rawBuffer = &toBuffer;

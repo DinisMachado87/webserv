@@ -7,13 +7,18 @@
 #include <cctype>
 #include <climits>
 #include <cstddef>
+#include <exception>
+#include <iostream>
 #include <map>
+#include <ostream>
 #include <sstream>
 #include <stdlib.h>
 #include <string>
 #include <utility>
 #include <vector>
 
+using std::cerr;
+using std::endl;
 using std::map;
 using std::pair;
 using std::string;
@@ -102,10 +107,8 @@ void ConfParser::parseLocationParam() {
 		_expect.path(&_newLocation._rewrite_new);
 	} else if (_token.compare("upload_enable"))
 		_newLocation._uploadEnable = _expect.onOff();
-
 	else if (_token.compare("upload_path"))
 		_expect.path(&_newLocation._uploadPath);
-
 	else if (_token.compare("cgi_extension")) {
 		_newLocation._cgiExtensions =
 			_expect.wordVec(_newServer->_strvVecBuf, _vecCursor);
@@ -178,9 +181,11 @@ void ConfParser::nextServer() {
 				parseServerLine();
 			continue;
 		case Token::CLOSEBLOCK:
-			_token.consolidateBuffer(_newServer->_strBuf);
+			_token.consolidateBuffers(_newServer->_strvVecBuf,
+									  _newServer->_strBuf);
 			_servers.push_back(_newServer);
 			_newServer = new Server();
+			_token.resetSpanConsolidationIndex();
 			return;
 		default:
 			throw parsingErr("Unexpected token");

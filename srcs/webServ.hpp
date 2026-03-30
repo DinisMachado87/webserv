@@ -1,6 +1,7 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
+#define VERBOSE 1
 // Unix return code
 #define OK 0
 #define ERR 1
