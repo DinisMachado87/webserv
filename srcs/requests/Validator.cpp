@@ -32,12 +32,12 @@ Validator::~Validator()
 {
 }
 
-Response* Validator::handleRequest(Request& request)
+Response* Validator::handleRequest(Request* request)
 {
 	const Location* location = NULL;
 
-	if (request.hasParseError())
-		return makeErrorResponse(request, location, request.getParseErrorCode(), request.getParseErrorMessage());
+	if (request->hasParseError())
+		return makeErrorResponse(request, location, request->getParseErrorCode(), request->getParseErrorMessage());
 
 	location = matchLocation(request);
 	if (location == NULL)
@@ -49,17 +49,17 @@ Response* Validator::handleRequest(Request& request)
 	if (!validateRequest(request, location))
 		return makeErrorResponse(request, location, 400, "Bad Request");
 
-	if (request.getType() == REQ_GET)
+	if (request->getType() == REQ_GET)
 		return handleGet(request, location);
-	if (request.getType() == REQ_POST)
+	if (request->getType() == REQ_POST)
 		return handlePost(request, location);
-	if (request.getType() == REQ_DELETE)
+	if (request->getType() == REQ_DELETE)
 		return handleDelete(request, location);
 
 	return makeErrorResponse(request, location, 405, "Method Not Allowed");
 }
 
-Response* Validator::handleGet(Request& request, const Location* location)
+Response* Validator::handleGet(Request* request, const Location* location)
 {
 	std::string	resolvedPath;
 	std::string	scriptName;
@@ -71,7 +71,7 @@ Response* Validator::handleGet(Request& request, const Location* location)
 	isRegularFile = false;
 
 	resolvedPath = buildResolvedPath(location, request);
-	request.setFilePath(resolvedPath);
+	request->setFilePath(resolvedPath);
 	if (resolvedPath.empty())
 		return makeErrorResponse(request, location, 500, "Path resolution failed");
 
@@ -106,7 +106,7 @@ Response* Validator::handleGet(Request& request, const Location* location)
 	return new GetResponse(const_cast<Location*>(location), &request);
 }
 
-Response* Validator::handlePost(Request& request, const Location* location)
+Response* Validator::handlePost(Request* request, const Location* location)
 {
 	std::string	resolvedPath;
 	std::string	scriptName;
@@ -118,7 +118,7 @@ Response* Validator::handlePost(Request& request, const Location* location)
 	isRegularFile = false;
 
 	resolvedPath = buildResolvedPath(location, request);
-	request.setFilePath(resolvedPath);
+	request->setFilePath(resolvedPath);
 	if (resolvedPath.empty())
 		return makeErrorResponse(request, location, 500, "Path resolution failed");
 
@@ -145,7 +145,7 @@ Response* Validator::handlePost(Request& request, const Location* location)
 	return new GetResponse(const_cast<Location*>(location), &request);
 }
 
-Response* Validator::handleDelete(Request& request, const Location* location)
+Response* Validator::handleDelete(Request* request, const Location* location)
 {
 	std::string	resolvedPath;
 	bool		isDirectory;
@@ -155,7 +155,7 @@ Response* Validator::handleDelete(Request& request, const Location* location)
 	isRegularFile = false;
 
 	resolvedPath = buildResolvedPath(location, request);
-	request.setFilePath(resolvedPath);
+	request->setFilePath(resolvedPath);
 	if (resolvedPath.empty())
 		return makeErrorResponse(request, location, 500, "Path resolution failed");
 
@@ -182,12 +182,12 @@ Response* Validator::handleDelete(Request& request, const Location* location)
 ** Finds the best matching location block (longest prefix match)
 ** for the request path.
 */
-const Location* Validator::matchLocation(const Request& request) const
+const Location* Validator::matchLocation(const Request* request) const
 {
 	size_t				i;
 	size_t				bestLen;
 	const Location*		best;
-	const std::string&	path = request.getRequestPath();
+	const std::string&	path = request->getRequestPath();
 
 	bestLen = 0;
 	best = NULL;
@@ -233,24 +233,24 @@ const Location* Validator::matchLocation(const Request& request) const
 	return best;
 }
 
-bool Validator::isMethodAllowed(const Location* location, const Request& request) const
+bool Validator::isMethodAllowed(const Location* location, const Request* request) const
 {
 	if (location == NULL)
 		return false;
-	if (request.getType() == REQ_GET)
+	if (request->getType() == REQ_GET)
 		return (location->isAllowedMethod(Location::GET) != 0);
-	if (request.getType() == REQ_POST)
+	if (request->getType() == REQ_POST)
 		return (location->isAllowedMethod(Location::POST) != 0);
-	if (request.getType() == REQ_DELETE)
+	if (request->getType() == REQ_DELETE)
 		return (location->isAllowedMethod(Location::DELETE) != 0);
 	return false;
 }
 
-bool Validator::validateRequest(const Request& request, const Location* location) const
+bool Validator::validateRequest(const Request* request, const Location* location) const
 {
 	(void)location;
 
-	if (request.getRequestPath().find("..") != std::string::npos)
+	if (request->getRequestPath().find("..") != std::string::npos)
 		return false;
 
 	/*
@@ -262,7 +262,7 @@ bool Validator::validateRequest(const Request& request, const Location* location
 	return true;
 }
 
-std::string Validator::buildResolvedPath(const Location* location, const Request& request) const
+std::string Validator::buildResolvedPath(const Location* location, const Request* request) const
 {
 	const char*	rootC;
 	const char*	locPathC;
@@ -271,7 +271,7 @@ std::string Validator::buildResolvedPath(const Location* location, const Request
 	locPathC = NULL;
 	if (location == NULL)
 		return "";
-	if (request.getRequestPath().find("..") != std::string::npos)
+	if (request->getRequestPath().find("..") != std::string::npos)
 		return "";
 
 	rootC = location->_overrides.getRoot();
@@ -284,7 +284,7 @@ std::string Validator::buildResolvedPath(const Location* location, const Request
 	if (locPathC == NULL || locPathC[0] == '\0')
 		return "";
 
-	return buildResolvedPathFromUrl(rootC, locPathC, request.getRequestPath());
+	return buildResolvedPathFromUrl(rootC, locPathC, request->getRequestPath());
 }
 
 std::string Validator::buildResolvedPathFromUrl(const std::string& root, const std::string& locationPath, const std::string& requestPath) const
@@ -343,7 +343,7 @@ bool Validator::isCgiPath(const Location* location,
 }
 
 bool Validator::resolveCgiScript(const Location* location,
-	const Request& request,
+	const Request* request,
 	std::string& scriptName,
 	std::string& pathInfo,
 	std::string& resolvedPath) const
@@ -374,7 +374,7 @@ bool Validator::resolveCgiScript(const Location* location,
 	if (locPathC == NULL || locPathC[0] == '\0')
 		return false;
 
-	candidateUrl = request.getRequestPath();
+	candidateUrl = request->getRequestPath();
 	while (!candidateUrl.empty())
 	{
 		candidateResolved = buildResolvedPathFromUrl(rootC, locPathC, candidateUrl);
@@ -391,8 +391,8 @@ bool Validator::resolveCgiScript(const Location* location,
 				{
 					resolvedPath = candidateResolved;
 					scriptName = candidateUrl;
-					if (request.getRequestPath().size() > candidateUrl.size())
-						pathInfo = request.getRequestPath().substr(candidateUrl.size());
+					if (request->getRequestPath().size() > candidateUrl.size())
+						pathInfo = request->getRequestPath().substr(candidateUrl.size());
 					else
 						pathInfo.clear();
 					return true;
@@ -407,13 +407,13 @@ bool Validator::resolveCgiScript(const Location* location,
 	return false;
 }
 
-Response* Validator::makeErrorResponse(Request& request, const Location* location, int code, const std::string& message) const
+Response* Validator::makeErrorResponse(Request* request, const Location* location, int code, const std::string& message) const
 {
-	request.setParseError(code, message);
-	return new ErrorResponse(const_cast<Location*>(location), &request);
+	request->setParseError(code, message);
+	return new ErrorResponse(const_cast<Location*>(location), request);
 }
 
-Response* Validator::makeMethodNotAllowedResponse(Request& request, const Location* location) const
+Response* Validator::makeMethodNotAllowedResponse(Request* request, const Location* location) const
 {
 	(void)location;
 
