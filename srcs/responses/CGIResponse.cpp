@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/30 17:27:31 by smoon            ###   ########.fr       */
+/*   Updated: 2026/03/31 14:18:40 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@ CGIResponse::CGIResponse(Location* loc, Request* req, const int& port) : Respons
 	setResponseBody();
 	generateHeader();
 }
+
 CGIResponse::~CGIResponse(void)
 {
 
