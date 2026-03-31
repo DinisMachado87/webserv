@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/03/26 16:08:44 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/03/27 16:04:44 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include "../responses/GetResponse.hpp"
 #include "../responses/CGIResponse.hpp"
 #include "../responses/DirectoryResponse.hpp"
+#include "../responses/ErrorResponse.hpp"
 
 #include <cerrno>
 #include <cstdlib>
@@ -36,18 +37,17 @@ Response* Validator::handleRequest(Request& request)
 	const Location* location = NULL;
 
 	if (request.hasParseError())
-		return makeErrorResponse(request.getParseErrorCode(),
-			request.getParseErrorMessage());
+		return makeErrorResponse(request, location, request.getParseErrorCode(), request.getParseErrorMessage());
 
 	location = matchLocation(request);
 	if (location == NULL)
-		return makeErrorResponse(404, "No matching location");
+		return makeErrorResponse(request, location, 404, "No matching location");
 
 	if (!isMethodAllowed(location, request))
-		return makeMethodNotAllowedResponse(location);
+		return makeMethodNotAllowedResponse(request, location);
 
 	if (!validateRequest(request, location))
-		return makeErrorResponse(400, "Bad Request");
+		return makeErrorResponse(request, location, 400, "Bad Request");
 
 	if (request.getType() == REQ_GET)
 		return handleGet(request, location);
@@ -56,7 +56,7 @@ Response* Validator::handleRequest(Request& request)
 	if (request.getType() == REQ_DELETE)
 		return handleDelete(request, location);
 
-	return makeErrorResponse(405, "Method Not Allowed");
+	return makeErrorResponse(request, location, 405, "Method Not Allowed");
 }
 
 Response* Validator::handleGet(Request& request, const Location* location)
@@ -73,7 +73,7 @@ Response* Validator::handleGet(Request& request, const Location* location)
 	resolvedPath = buildResolvedPath(location, request);
 	request.setFilePath(resolvedPath);
 	if (resolvedPath.empty())
-		return makeErrorResponse(500, "Path resolution failed");
+		return makeErrorResponse(request, location, 500, "Path resolution failed");
 
 	if (resolveCgiScript(location, request, scriptName, pathInfo, resolvedPath))
 	{
@@ -86,8 +86,8 @@ Response* Validator::handleGet(Request& request, const Location* location)
 	if (!inspectResolvedPath(resolvedPath, isDirectory, isRegularFile))
 	{
 		if (errno == EACCES)
-			return makeErrorResponse(403, "Forbidden");
-		return makeErrorResponse(404, "Not Found");
+			return makeErrorResponse(request, location, 403, "Forbidden");
+		return makeErrorResponse(request, location, 404, "Not Found");
 	}
 
 	std::cout << "Resolved path: " << resolvedPath << std::endl;
@@ -100,7 +100,7 @@ Response* Validator::handleGet(Request& request, const Location* location)
 		if (location->_overrides.isAutoindexed())
 			return new DirectoryResponse(const_cast<Location*>(location), &request);
 		else
-			return makeErrorResponse(403, "Forbidden");
+			return makeErrorResponse(request, location, 403, "Forbidden");
 	}
 
 	return new GetResponse(const_cast<Location*>(location), &request);
@@ -120,7 +120,7 @@ Response* Validator::handlePost(Request& request, const Location* location)
 	resolvedPath = buildResolvedPath(location, request);
 	request.setFilePath(resolvedPath);
 	if (resolvedPath.empty())
-		return makeErrorResponse(500, "Path resolution failed");
+		return makeErrorResponse(request, location, 500, "Path resolution failed");
 
 	if (resolveCgiScript(location, request, scriptName, pathInfo, resolvedPath))
 	{
@@ -133,8 +133,8 @@ Response* Validator::handlePost(Request& request, const Location* location)
 	if (!inspectResolvedPath(resolvedPath, isDirectory, isRegularFile))
 	{
 		if (errno == EACCES)
-			return makeErrorResponse(403, "Forbidden");
-		return makeErrorResponse(404, "Not Found");
+			return makeErrorResponse(request, location, 403, "Forbidden");
+		return makeErrorResponse(request, location, 404, "Not Found");
 	}
 
 	std::cout << "Resolved path: " << resolvedPath << std::endl;
@@ -157,19 +157,19 @@ Response* Validator::handleDelete(Request& request, const Location* location)
 	resolvedPath = buildResolvedPath(location, request);
 	request.setFilePath(resolvedPath);
 	if (resolvedPath.empty())
-		return makeErrorResponse(500, "Path resolution failed");
+		return makeErrorResponse(request, location, 500, "Path resolution failed");
 
 	if (!inspectResolvedPath(resolvedPath, isDirectory, isRegularFile))
 	{
 		if (errno == EACCES)
-			return makeErrorResponse(403, "Forbidden");
-		return makeErrorResponse(404, "Not Found");
+			return makeErrorResponse(request, location, 403, "Forbidden");
+		return makeErrorResponse(request, location, 404, "Not Found");
 	}
 
 	if (isDirectory)
-		return makeErrorResponse(403, "Cannot delete directory");
+		return makeErrorResponse(request, location, 403, "Cannot delete directory");
 	if (!isRegularFile)
-		return makeErrorResponse(404, "Not Found");
+		return makeErrorResponse(request, location, 404, "Not Found");
 
 	std::cout << "Resolved path: " << resolvedPath << std::endl;
 	std::cout << "_isDirectory=" << isDirectory
@@ -407,25 +407,18 @@ bool Validator::resolveCgiScript(const Location* location,
 	return false;
 }
 
-Response* Validator::makeErrorResponse(int code, const std::string& message) const
+Response* Validator::makeErrorResponse(Request& request, const Location* location, int code, const std::string& message) const
 {
-	(void)code;
-	(void)message;
-
-	/*
-	** Replace this with your real error response creation.
-	** Example:
-	** return new Response(...);
-	*/
-	return NULL;
+	request.setParseError(code, message);
+	return new ErrorResponse(const_cast<Location*>(location), &request);
 }
 
-Response* Validator::makeMethodNotAllowedResponse(const Location* location) const
+Response* Validator::makeMethodNotAllowedResponse(Request& request, const Location* location) const
 {
 	(void)location;
 
 	/*
 	** Later you may want to build an Allow header from location.
 	*/
-	return makeErrorResponse(405, "Method Not Allowed");
+	return makeErrorResponse(request, location, 405, "Method Not Allowed");
 }

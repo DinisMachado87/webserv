@@ -53,8 +53,8 @@ private:
 
 	bool resolveCgiScript(const Location* location,	const Request& request,	std::string& scriptName, std::string& pathInfo,	std::string& resolvedPath) const;
 
-	Response* makeErrorResponse(int code, const std::string& message) const;
-	Response* makeMethodNotAllowedResponse(const Location* location) const;
+	Response* makeErrorResponse(Request& request, const Location* location, int code, const std::string& message) const;
+	Response* makeMethodNotAllowedResponse(Request& request, const Location* location) const;
 };
 
 
