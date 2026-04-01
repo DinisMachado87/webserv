@@ -1,4 +1,5 @@
 #include "Token.hpp"
+#include "Server.hpp"
 #include "StrView.hpp"
 #include "webServ.hpp"
 #include <cctype>
@@ -7,13 +8,17 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
+#include <vector>
 
 using std::string;
 using std::strtol;
+using std::vector;
 
 // Public constructors and destructors
 Token::Token(const uchar *table, std::string &parsingString) :
@@ -50,16 +55,6 @@ const uchar *Token::configDelimiters() {
 	isDelimiter[';'] = SEMICOLON;
 	isDelimiter['\\'] = EXCAPE;
 	isDelimiter['\0'] = ENDOFILE;
-	isDelimiter['0'] = DIGIT;
-	isDelimiter['1'] = DIGIT;
-	isDelimiter['2'] = DIGIT;
-	isDelimiter['3'] = DIGIT;
-	isDelimiter['4'] = DIGIT;
-	isDelimiter['5'] = DIGIT;
-	isDelimiter['6'] = DIGIT;
-	isDelimiter['7'] = DIGIT;
-	isDelimiter['8'] = DIGIT;
-	isDelimiter['9'] = DIGIT;
 	return isDelimiter;
 }
 
@@ -266,13 +261,33 @@ void Token::trackInUseToken(StrView *strV) {
 	_strBuffSize += strV->getLen() + 1;
 }
 
-void Token::consolidateBuffer(string &newBuffer) {
-	newBuffer.reserve(_strBuffSize);
-	for (uint i = 0; i < _tokensInUse.size(); i++)
-		_tokensInUse[i]->move(newBuffer);
+void Token::consolidateStrVSpans(vector<StrView> &vecBuf, string &newStrBuf) {
+	std::cout << "Consolidating StrView Span Buffer: " << std::endl;
+
+	size_t i = _vecBuffConsolidationIndex;
+	for (; i < vecBuf.size(); i++)
+		vecBuf[i].move(newStrBuf);
+	_vecBuffConsolidationIndex = vecBuf.size();
+}
+
+void Token::consolidateBuffer(string &newBuf) {
+	std::cout << "Consolidating StrView Buffer: " << std::endl;
+
+	for (uint i = 0; i < _tokensInUse.size(); i++) {
+		_tokensInUse[i]->printStrV();
+		_tokensInUse[i]->move(newBuf);
+	}
 	_tokensInUse.clear();
+}
+
+void Token::consolidateBuffers(vector<StrView> &vecBuf, string &newStrBuf) {
+	newStrBuf.reserve(newStrBuf.size() + _strBuffSize);
+	consolidateBuffer(newStrBuf);
+	consolidateStrVSpans(vecBuf, newStrBuf);
 	_strBuffSize = 0;
 }
+
+void Token::resetSpanConsolidationIndex() { _vecBuffConsolidationIndex = 0; }
 
 void Token::LoadParsingString(string &parsingString) {
 	_strV.setBuffer(parsingString);

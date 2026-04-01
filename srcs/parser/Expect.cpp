@@ -70,7 +70,6 @@ Span<StrView> Expect::wordVec(std::vector<StrView> &vecBuf, uint &vecCursor) {
 		switch (_token.loadNext()) {
 		case Token::WORD:
 			vecBuf.push_back(_token.getStrV());
-			_token.trackInUseToken(&vecBuf.back());
 			count++;
 			break;
 		case Token::SEMICOLON: {

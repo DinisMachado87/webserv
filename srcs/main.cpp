@@ -2,6 +2,7 @@
 #include "Token.hpp"
 #include "server/Server.hpp"
 #include <cerrno>
+#include <csignal>
 #include <cstring>
 #include <fstream>
 #include <istream>
@@ -9,21 +10,21 @@
 #include <stdexcept>
 #include <string>
 
-using std::runtime_error;
 using std::ifstream;
-using std::stringstream;
+using std::runtime_error;
 using std::string;
+using std::stringstream;
 
 // Error handeling
-static runtime_error	handleError(const string errMsg) {
-	return runtime_error( errMsg + strerror(errno));
+static runtime_error handleError(const string errMsg) {
+	return runtime_error(errMsg + strerror(errno));
 }
 
-static string readFile(const char* filepath) {
+static string readFile(const char *filepath) {
 	ifstream file(filepath);
 
 	if (!file.is_open())
-		throw ("Error opening file: ");
+		throw("Error opening file: ");
 
 	stringstream buffer;
 	buffer << file.rdbuf();
@@ -31,17 +32,49 @@ static string readFile(const char* filepath) {
 	file.close();
 	return buffer.str();
 }
-
-int	main(int argc, char **argv)
-{
+//
+// void signal_handler(int signum) {
+// 	char msgSigint[] = "\nReceived SIGINT (Ctrl+C). Shutting down.\n";
+// 	char msgSigterm[] = "\nReceived SIGTERM. Shutting down.\n";
+// 	char msgDefault[] = "\nReceived signal. Shutting down.\n";
+// 	const char *msg;
+//
+// 	if (signum == SIGINT)
+// 		msg = msgSigint;
+// 	if (signum == SIGTERM)
+// 		msg = msgSigterm;
+// 	else
+// 		msg = msgDefault;
+//
+// 	write(STDOUT_FILENO, msg, strlen(msg));
+// 	g_shutdown = 1;
+// }
+//
+// void setup_signals() {
+// 	struct sigaction sa;
+//
+// 	sigemptyset(&sa.sa_mask);
+// 	sa.sa_flags = 0;
+//
+// 	// Custom handler for graceful shutdown
+// 	sa.sa_handler = signal_handler;
+// 	sigaction(SIGINT, &sa, NULL);
+// 	sigaction(SIGTERM, &sa, NULL);
+//
+// 	// Ignore broken pipe / client is gone
+// 	sa.sa_handler = SIG_IGN;
+// 	sigaction(SIGPIPE, &sa, NULL);
+// }
+//
+int main(int argc, char **argv) {
 	if (argc < 2)
 		throw handleError("Missing Argument. Use: ./webserv <config/path>");
 	else if (argc > 3)
 		throw handleError("Too many arguments. Use: ./webserv <config/path>");
 
-	const char* configPath = argv[1];
+	const char *configPath = argv[1];
 	string config = readFile(configPath);
-	Engine	engine;
+	Engine engine;
 	engine.run(config);
 
 	return (0);

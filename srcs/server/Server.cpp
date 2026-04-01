@@ -2,16 +2,23 @@
 #include "StrView.hpp"
 #include "Token.hpp"
 #include "webServ.hpp"
+#include <arpa/inet.h>
 #include <cerrno>
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <map>
 #include <netinet/in.h>
+#include <ostream>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
 #include <unistd.h>
 #include <vector>
+
+using std::cout;
+using std::endl;
+using std::string;
 
 // Public constructors and destructors
 Overrides::Overrides(std::string &strBuf, std::vector<StrView> &vecBuf) :
@@ -113,4 +120,67 @@ uchar Location::isAllowedMethod(uchar methodToCheck) const {
 };
 
 in_addr_t Listen::getHost() const { return _host; }
+
 uint16_t Listen::getPort() const { return _port; }
+void Server::print() const {
+	cout << "----- SERVER -----" << endl;
+
+	cout << "\nListen addresses (" << _listen.size() << "):" << endl;
+	for (size_t i = 0; i < _listen.size(); i++) {
+		cout << "  [" << i << "] Host: " << formatIP(_listen[i].getHost())
+			 << ", Port: " << _listen[i].getPort() << endl;
+	}
+
+	printOverrides(_defaults, "Defaults");
+
+	cout << "\nLocations (" << _locations.size() << "):" << endl;
+	for (size_t i = 0; i < _locations.size(); i++) {
+		printLocation(_locations[i], i);
+	}
+
+	printBufferSizes();
+
+	cout << "-----" << endl;
+}
+
+void Server::printOverrides(const Overrides &over, const char *label) const {
+	cout << "\n" << label << ":" << endl;
+	cout << "  Root: " << safeStr(over.getRoot()) << endl;
+	cout << "  Autoindex: " << (over.isAutoindexed() ? "true" : "false")
+		 << endl;
+	cout << "  Client Max Body: " << over.getClientMaxBody() << endl;
+	cout << "  Index files: " << over.getIndex().len() << endl;
+	cout << "  Error pages: " << over.getErrorMapSize() << endl;
+}
+
+void Server::printLocation(const Location &loc, size_t index) const {
+	cout << "  [" << index << "] Path: " << safeStr(loc.getPath()) << endl;
+	cout << "      Return Code: " << loc.getReturncode() << endl;
+	cout << "      Return Path: " << safeStr(loc.getReturnPath()) << endl;
+	cout << "      Upload Enabled: "
+		 << (loc.getUploadEnabled() ? "true" : "false") << endl;
+	cout << "      Upload Path: " << safeStr(loc.getUploadPath()) << endl;
+	cout << "      CGI Extensions: " << loc.getCgiExtensions().len() << endl;
+	cout << "      Allowed Methods: " << static_cast<int>(loc._allowedMethods)
+		 << endl;
+}
+
+void Server::printBufferSizes() const {
+	cout << "\nBuffer Sizes:" << endl;
+	cout << "  String buffer: " << _strBuf.size() << "/" << _strBuf.capacity()
+		 << endl;
+	cout << "  StrView buffer: " << _strvVecBuf.size() << "/"
+		 << _strvVecBuf.capacity() << endl;
+	cout << "  Int buffer: " << _intVecBuf.size() << "/"
+		 << _intVecBuf.capacity() << endl;
+}
+
+const char *Server::safeStr(const char *str) const {
+	return str ? str : "NULL";
+}
+
+string Server::formatIP(in_addr_t addr) const {
+	struct in_addr in;
+	in.s_addr = addr;
+	return std::string(inet_ntoa(in));
+}
