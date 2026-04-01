@@ -22,14 +22,14 @@ using std::endl;
 using std::runtime_error;
 using std::string;
 
-runtime_error Listening::handleFdError(const char *errMsg, int fdSock) {
+runtime_error Listening::handleFdError(const char *errMsg, const int fdSock) {
 	if (0 < fdSock)
 		close(fdSock);
 	return runtime_error(string(errMsg) + strerror(errno));
 }
 
 // Public constructors and destructors
-Listening::Listening(int fd, const Server &server,
+Listening::Listening(const int fd, const Server &server,
 					 struct sockaddr_in serverAddr) :
 	ASocket(fd, server, serverAddr) {}
 
@@ -81,10 +81,8 @@ Connection *Listening::handleIn() {
 		throw handleError("Error accepting client: ");
 
 	setNonBlocking(clientFd);
-	cout << "Accepted connection on Listening socket" << _fd
+	cout << "Accepted connection on Listening socket " << _fd << "\n"
 		 << "New connection socket " << clientFd << endl;
 
 	return new Connection(clientFd, _server, clientAddr);
 }
-
-void Listening::handleOut() {}

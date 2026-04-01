@@ -21,6 +21,7 @@
 using std::cerr;
 using std::endl;
 using std::map;
+using std::pair;
 using std::runtime_error;
 using std::string;
 using std::vector;
@@ -64,10 +65,10 @@ ASocket *Engine::getSocket(int fd) {
 }
 
 void Engine::setEventTo(int epollFd, uint operation, uint eventType,
-						int socketFd, void *ptrToSock) {
+						int socketFd, ASocket *socket) {
 	struct epoll_event event;
-	event.events = eventType;
-	event.data.ptr = ptrToSock;
+	event.events = socket->addAndTrackCurEvents(eventType);
+	event.data.ptr = socket->getPtrToSelf();
 	if (OK == epoll_ctl(epollFd, operation, socketFd, &event))
 		return;
 	throw handleError("Error setting epoll socket event type: ");
@@ -80,8 +81,7 @@ void Engine::addSocket(ASocket *socket) {
 	int fd = socket->getFd();
 	if (socket && fd > 0) {
 		_sockets[fd] = socket;
-		setEventTo(_fdEpoll, EPOLL_CTL_ADD, EPOLLIN, fd,
-				   socket->getPtrToSelf());
+		setEventTo(_fdEpoll, EPOLL_CTL_ADD, EPOLLIN, fd, socket);
 	} else
 		throw handleError("Error adding socket");
 }
@@ -89,8 +89,7 @@ void Engine::addSocket(ASocket *socket) {
 void Engine::deleteSocket(int fd) {
 	map<int, ASocket *>::iterator socket = _sockets.find(fd);
 	if (socket != _sockets.end()) {
-		setEventTo(_fdEpoll, EPOLL_CTL_DEL, 0, fd,
-				   socket->second->getPtrToSelf());
+		setEventTo(_fdEpoll, EPOLL_CTL_DEL, 0, fd, socket->second);
 		delete socket->second;
 		_sockets.erase(socket);
 	}
@@ -116,19 +115,17 @@ void Engine::createSockets() {
 
 void Engine::pollLoop() {
 	struct epoll_event events[MAX_EVENTS];
-	int nfds = -1;
-	Connection *newConnection = NULL;
+	int nFds = -1;
 
 	while (true) {
-		newConnection = NULL;
-		nfds = epoll_wait(_fdEpoll, events, MAX_EVENTS, TIMEOUT);
-		if (ERR == nfds) {
+		nFds = epoll_wait(_fdEpoll, events, MAX_EVENTS, TIMEOUT);
+		if (ERR == nFds) {
 			if (errno == EINTR)
 				continue;
 			handleError("Epoll_wait error: ");
 		}
 
-		for (int i = 0; i < nfds; i++) {
+		for (int i = 0; i < nFds; i++) {
 			ASocket *socket = static_cast<ASocket *>(events[i].data.ptr);
 			uint32_t ev = events[i].events;
 
@@ -137,12 +134,16 @@ void Engine::pollLoop() {
 				continue;
 			}
 			if (ev & EPOLLIN) {
-				newConnection = socket->handleIn();
-				if (newConnection)
-					addSocket(newConnection);
+				Connection *connection = socket->handleIn();
+				if (connection)
+					addSocket(connection);
 			}
 			if (ev & EPOLLOUT)
 				socket->handleOut();
+
+			if (socket->setEpollOut())
+				setEventTo(_fdEpoll, EPOLL_CTL_MOD, EPOLLOUT, socket->getFd(),
+						   socket);
 		}
 	}
 }

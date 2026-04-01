@@ -22,19 +22,20 @@
 class Listening : public ASocket {
 private:
 	// Constructor
-	Listening(int fd, const Server &server, struct sockaddr_in serverAddr);
+	Listening(const int fd, const Server &server,
+			  struct sockaddr_in serverAddr);
 	// Explicit Disables
 	Listening();
 	Listening(const Listening &other);
 	Listening &operator=(const Listening &other);
 	// Error Handeling
-	static std::runtime_error handleFdError(const char *errMsg, int fdSock);
+	static std::runtime_error handleFdError(const char *errMsg,
+											const int fdSock);
 
 public:
 	// Constructors and destructors
 	~Listening();
 	// Methods
-	void handleOut();
 	Connection *handleIn();
 	static Listening *create(const Server &server, const Listen &listenSock);
 };
