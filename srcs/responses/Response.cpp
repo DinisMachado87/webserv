@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/30 17:27:38 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/01 14:01:47 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ bool	Response::sendResponse(const int &clientFD)
 	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 1;
+	return 0;
 }
 
 void	Response::getTime(char* buf, int bufSize)
