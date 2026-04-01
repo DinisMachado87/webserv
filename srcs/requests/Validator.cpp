@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Validator.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/03/27 16:04:44 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/01 11:54:45 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,7 @@ Response* Validator::handleGet(Request* request, const Location* location)
 		std::cout << "Resolved CGI script: " << resolvedPath << std::endl;
 		std::cout << "scriptName=" << scriptName
 			<< " pathInfo=" << pathInfo << std::endl;
-		return new CGIResponse(const_cast<Location*>(location), &request, _server._listen[0].getPort());
+		return new CGIResponse(const_cast<Location*>(location), request, _server._listen[0].getPort());
 	}
 
 	if (!inspectResolvedPath(resolvedPath, isDirectory, isRegularFile))
@@ -98,12 +98,12 @@ Response* Validator::handleGet(Request* request, const Location* location)
 	if (isDirectory)
 	{
 		if (location->_overrides.isAutoindexed())
-			return new DirectoryResponse(const_cast<Location*>(location), &request);
+			return new DirectoryResponse(const_cast<Location*>(location), request);
 		else
 			return makeErrorResponse(request, location, 403, "Forbidden");
 	}
 
-	return new GetResponse(const_cast<Location*>(location), &request);
+	return new GetResponse(const_cast<Location*>(location), request);
 }
 
 Response* Validator::handlePost(Request* request, const Location* location)
@@ -127,7 +127,7 @@ Response* Validator::handlePost(Request* request, const Location* location)
 		std::cout << "Resolved CGI script: " << resolvedPath << std::endl;
 		std::cout << "scriptName=" << scriptName
 			<< " pathInfo=" << pathInfo << std::endl;
-		return new CGIResponse(const_cast<Location*>(location), &request, _server._listen[0].getPort());
+		return new CGIResponse(const_cast<Location*>(location), request, _server._listen[0].getPort());
 	}
 
 	if (!inspectResolvedPath(resolvedPath, isDirectory, isRegularFile))
@@ -142,7 +142,7 @@ Response* Validator::handlePost(Request* request, const Location* location)
 		<< " _isRegularFile=" << isRegularFile
 		<< " _isCgi=" << isCgiPath(location, resolvedPath) << std::endl;
 
-	return new GetResponse(const_cast<Location*>(location), &request);
+	return new GetResponse(const_cast<Location*>(location), request);
 }
 
 Response* Validator::handleDelete(Request* request, const Location* location)
@@ -175,7 +175,7 @@ Response* Validator::handleDelete(Request* request, const Location* location)
 	std::cout << "_isDirectory=" << isDirectory
 		<< " _isRegularFile=" << isRegularFile << std::endl;
 
-	return new GetResponse(const_cast<Location*>(location), &request);
+	return new GetResponse(const_cast<Location*>(location), request);
 }
 
 /*

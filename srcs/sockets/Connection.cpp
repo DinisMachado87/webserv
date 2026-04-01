@@ -50,7 +50,7 @@ Connection *Connection::handleIn() {
 	if (!request)
 		return NULL;
 
-	Response *response = _validator.handleRequest(*request);
+	Response *response = _validator.handleRequest(request);
 	if (!response)
 		return NULL;
 
