@@ -6,8 +6,12 @@
 // Unix return code
 #define OK 0
 #define ERR 1
+// Multical returns
+#define ONGOING 1
+#define DONE 0
 // EPOLL Macros
 #define MAX_EVENTS 1024
+#define RESPONSES_CUE_SIZE 10
 #define TIMEOUT 1000
 #define RECV_SIZE 1000
 #define CHUNK_SIZE 1000

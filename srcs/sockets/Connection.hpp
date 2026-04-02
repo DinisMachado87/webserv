@@ -5,15 +5,16 @@
 #include "HttpParser.hpp"
 #include "Server.hpp"
 #include "Validator.hpp"
+#include <cstddef>
 #include <sys/epoll.h>
-#include <vector>
 
 class Connection : public ASocket {
 private:
 	HttpParser _http;
 	Validator _validator;
-	std::vector<Response *> _responses;
-	Response *_curResponse;
+	Response *_responses[10];
+	size_t _cur;
+	size_t _back;
 
 	// Explicit disables
 	Connection(const int fd, const Server &server,
@@ -30,7 +31,8 @@ public:
 	Connection *handleIn();
 	void handleOut();
 	// Event tracking
-	int setEpollOut() const;
+	uint32_t getEventsNextLoop();
+	bool isFull() const;
 };
 
 #endif

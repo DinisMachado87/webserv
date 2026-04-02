@@ -77,8 +77,11 @@ Connection *Listening::handleIn() {
 	socklen_t clientAddrLen = sizeof(clientAddr);
 
 	int clientFd = accept(_fd, (sockaddr *)&clientAddr, &clientAddrLen);
-	if (OK > clientFd)
+	if (ERR >= clientFd) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return NULL;
 		throw handleError("Error accepting client: ");
+	}
 
 	setNonBlocking(clientFd);
 	cout << "Accepted connection on Listening socket " << _fd << "\n"

@@ -20,6 +20,8 @@ protected:
 	std::vector<Server *> _servers;
 	std::map<int, ASocket *> _sockets;
 	// Methods
+	void deleteSocket(ASocket *socket);
+	void updateFlags(ASocket *socket);
 	void pollLoop();
 	void createSockets();
 	void buildServers(std::string &config);
@@ -28,7 +30,6 @@ protected:
 	void setEventTo(int epollFd, uint operation, uint eventType, int socketFd,
 					ASocket *ptrToSock);
 	void addSocket(ASocket *socket);
-	void deleteSocket(int fd);
 	void epoll_init();
 
 public:

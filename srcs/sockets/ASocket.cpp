@@ -15,7 +15,6 @@ using std::string;
 // Public constructors and destructors
 ASocket::ASocket(const int fd, const Server &server,
 				 struct sockaddr_in serverAddr) :
-	_ptrToSelf(this),
 	_fd(fd),
 	_server(server),
 	_serverAddr(serverAddr),
@@ -33,21 +32,21 @@ runtime_error ASocket::handleError(const string errMsg) {
 
 // Public Methods
 int ASocket::getFd() const { return (_fd); }
-void *ASocket::getPtrToSelf() const { return _ptrToSelf; }
+uint32_t ASocket::getCurEvents() const { return _events; }
+
 int ASocket::setNonBlocking(int fd) {
 	int flags = fcntl(fd, F_GETFD);
 	if (ERR == fcntl(fd, F_SETFD, flags | O_NONBLOCK))
 		throw handleError("Error setting client sock non-blocking: ");
-
 	return OK;
 }
 
-// defaults for virtual methods
-int ASocket::setEpollOut() const { return false; }
-void ASocket::handleOut() {};
-
-uint32_t ASocket::getCurEvents() const { return _events; }
-uint32_t ASocket::addAndTrackCurEvents(uint32_t eventToAdd) {
-	_events |= eventToAdd;
+uint32_t ASocket::trackCurEvents(uint32_t events) {
+	_events |= events;
 	return _events;
 }
+
+// defaults for virtual methods
+bool ASocket::isFull() { return false; }
+void ASocket::handleOut() {};
+uint32_t ASocket::getEventsNextLoop() { return EPOLLIN; }

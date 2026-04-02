@@ -18,7 +18,6 @@ private:
 	ASocket &operator=(const ASocket &other);
 
 protected:
-	void *_ptrToSelf;
 	int _fd;
 	const Server &_server;
 	struct sockaddr_in _serverAddr;
@@ -29,19 +28,18 @@ protected:
 	static std::runtime_error handleError(const std::string errMsg);
 
 public:
-	enum { NONE, ADD_EPOLLOUT, REMOVE_EPOLLOUT };
 	// Constructors and destructors
 	virtual ~ASocket();
 	// Methods
+	bool isFull();
 	virtual Connection *handleIn() = 0;
 	virtual void handleOut();
 	// Events
-	virtual int setEpollOut() const;
+	virtual uint32_t getEventsNextLoop();
 	uint32_t getCurEvents() const;
-	uint32_t addAndTrackCurEvents(uint32_t eventToAdd);
+	uint32_t trackCurEvents(uint32_t events);
 	// Getters and setters
 	int getFd() const;
-	void *getPtrToSelf() const;
 	// Static class methods
 	static int setNonBlocking(int fd);
 };
