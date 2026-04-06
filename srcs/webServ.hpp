@@ -5,7 +5,7 @@
 #define VERBOSE 1
 // Unix return code
 #define OK 0
-#define ERR 1
+#define ERR -1
 // Multical returns
 #define ONGOING 1
 #define DONE 0
