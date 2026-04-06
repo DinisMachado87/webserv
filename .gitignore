@@ -3,3 +3,4 @@ documentation
 .cache
 compile_commands.json
 .clang-format
+serverLog.txt

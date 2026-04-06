@@ -1,29 +1,22 @@
 #include "Engine.hpp"
-#include "Token.hpp"
-#include "server/Server.hpp"
+#include "Logger.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fstream>
-#include <istream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 
-using std::runtime_error;
 using std::ifstream;
-using std::stringstream;
+using std::runtime_error;
 using std::string;
+using std::stringstream;
 
-// Error handeling
-static runtime_error	handleError(const string errMsg) {
-	return runtime_error( errMsg + strerror(errno));
-}
-
-static string readFile(const char* filepath) {
+static string readFile(const char *filepath) {
 	ifstream file(filepath);
 
 	if (!file.is_open())
-		throw ("Error opening file: ");
+		throw("Error opening file: ");
 
 	stringstream buffer;
 	buffer << file.rdbuf();
@@ -32,17 +25,23 @@ static string readFile(const char* filepath) {
 	return buffer.str();
 }
 
-int	main(int argc, char **argv)
-{
-	if (argc < 2)
-		throw handleError("Missing Argument. Use: ./webserv <config/path>");
-	else if (argc > 3)
-		throw handleError("Too many arguments. Use: ./webserv <config/path>");
+int main(int argc, char **argv) {
+	try {
+		if (argc < 2)
+			throw runtime_error(
+				"Missing Argument. Use: ./webserv <config/path>");
+		else if (argc > 3)
+			throw runtime_error(
+				"Too many arguments. Use: ./webserv <config/path>");
 
-	const char* configPath = argv[1];
-	string config = readFile(configPath);
-	Engine	engine;
-	engine.run(config);
-
+		const char *configPath = argv[1];
+		string config = readFile(configPath);
+		Engine engine;
+		engine.run(config);
+		Logger::deleteLogger();
+	} catch (runtime_error err) {
+		LOG_ERROR(err);
+		return (1);
+	}
 	return (0);
 }

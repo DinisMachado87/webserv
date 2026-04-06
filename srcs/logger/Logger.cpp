@@ -41,10 +41,10 @@ Logger::Logger() :
 Logger::~Logger() { _logFile.close(); }
 
 void Logger::deleteLogger() {
-	Logger *loggerPtr = logger();
-	delete loggerPtr;
-	loggerPtr = NULL;
+	delete _loggerPtr;
+	_loggerPtr = NULL;
 }
+
 // Public Methods
 Logger *Logger::logger() {
 	if (!_loggerPtr) {
@@ -101,9 +101,15 @@ void Logger::addHost(stringstream &stream, in_addr_t host) {
 		   << '.' << (int)octet[3];
 }
 
+void Logger::logError(runtime_error errorMsg) {
+	if (ERROR > _level)
+		return;
+	log(ERROR, errorMsg.what(), 0, INT_MAX);
+}
+
 void Logger::log(const int level, const char *msg, const int socket,
 				 in_addr_t host) {
-	if (level < _level)
+	if (level > _level)
 		return;
 
 	stringstream stream;
@@ -118,21 +124,17 @@ void Logger::log(const int level, const char *msg, const int socket,
 }
 
 void Logger::logTitle(const char *msg) {
+	if (LOG > _level)
+		return;
 	stringstream stream;
 	stream << COLOR_PURPLE;
 	stream << "=====" << msg << "=====";
 	print(LOG, stream);
 }
 
-void Logger::logError(runtime_error errorMsg) {
-	stringstream stream;
-	color(ERROR, stream);
-	stream << _clock.now() << " | ";
-	stream << errorMsg.what();
-	print(ERROR, stream);
-}
-
 void Logger::logServer(const char *msg, const Server &server) {
+	if (LOG > _level)
+		return;
 	stringstream stream;
 	stream << msg << '\n';
 	server.getServerStr(stream);
