@@ -20,8 +20,8 @@ server {
 }
 
 server {
-	listen 8081;
-	listen 8082;
+	listen localhost:8081;
+	listen localhost:8082;
 	root /var/www/site2;
 
 	location / {

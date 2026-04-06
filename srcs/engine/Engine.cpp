@@ -3,6 +3,7 @@
 #include "ConfParser.hpp"
 #include "Connection.hpp"
 #include "Listening.hpp"
+#include "Logger.hpp"
 #include "webServ.hpp"
 #include <bits/types/error_t.h>
 #include <cerrno>
@@ -169,6 +170,6 @@ void Engine::run(string &config) {
 		createSockets();
 		pollLoop();
 	} catch (runtime_error err) {
-		cerr << err.what() << endl;
+		LOG_ERROR(err);
 	}
 }

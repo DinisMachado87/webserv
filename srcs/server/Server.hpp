@@ -8,6 +8,7 @@
 #include "webServ.hpp"
 #include <map>
 #include <netinet/in.h>
+#include <sstream>
 #include <string>
 #include <sys/epoll.h>
 #include <vector>
@@ -97,9 +98,11 @@ protected:
 	std::string formatIP(in_addr_t addr) const;
 	size_t getListenLen();
 	size_t getLoncationsLen();
-	void printBufferSizes() const;
-	void printLocation(const Location &loc, size_t index) const;
-	void printOverrides(const Overrides &over, const char *label) const;
+	void printBufferSizes(std::stringstream &stream) const;
+	void printLocation(const Location &loc, size_t index,
+					   std::stringstream &stream) const;
+	void printOverrides(const Overrides &over, const char *label,
+						std::stringstream &stream) const;
 	const char *safeStr(const char *str) const;
 
 public:
@@ -113,7 +116,7 @@ public:
 	// Methods
 	void reserve(uint sizeStrBuf, uint sizeStrvVecBuf, uint sizeintVecBuf);
 	// Getters Server Vars
-	void print() const;
+	void getServerStr(std::stringstream &stream) const;
 };
 
 #endif

@@ -5,3 +5,4 @@ compile_commands.json
 .clang-format
 srcs/responses/*
 srcs/requests/*
+serverLog.txt

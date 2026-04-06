@@ -1,6 +1,7 @@
 #include "Listening.hpp"
 #include "ASocket.hpp"
 #include "Connection.hpp"
+#include "Logger.hpp"
 #include "Server.hpp"
 #include "webServ.hpp"
 #include <arpa/inet.h>
@@ -11,6 +12,7 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <ostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <sys/epoll.h>
@@ -21,6 +23,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 using std::string;
+using std::stringstream;
 
 runtime_error Listening::handleFdError(const char *errMsg, const int fdSock) {
 	if (0 < fdSock)
@@ -37,15 +40,15 @@ Listening::~Listening() {}
 
 // Public Methods
 Listening *Listening::create(const Server &server, const Listen &listenSock) {
-	cout << "Starting Server:\n";
-	server.print();
+	LOG_TITLE("CREATING SOCKET");
+	LOG_SERVER("Starting Server:\n", server);
 
 	struct sockaddr_in addr = {
 		AF_INET, htons(listenSock.getPort()), {listenSock.getHost()}, {0}};
 
 	int fdSock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
 	if (OK <= fdSock)
-		cout << "Created listening socket with fd " << fdSock << "\n";
+		LOGSOCK(Logger::LOG, "Created listening socket with fd ", fdSock);
 	else
 		throw handleFdError("Error creating listening socket: ", fdSock);
 
@@ -53,26 +56,26 @@ Listening *Listening::create(const Server &server, const Listen &listenSock) {
 	if (OK == setNonBlocking(fdSock) &&
 		OK == setsockopt(fdSock, SOL_SOCKET, SO_REUSEADDR, &enable,
 						 sizeof(enable)))
-		cout << "Set Listening Socket options" << "\n";
+		LOG(Logger::LOG, "Set Listening Socket options");
 	else
 		throw handleFdError(
 			"Error setting Listening socket non blocking/reuseaddr: ", fdSock);
 
 	if (OK == bind(fdSock, (struct sockaddr *)&addr, sizeof(addr)))
-		cout << "Bind socket" << "\n";
+		LOG(Logger::LOG, "Bind socket");
 	else
 		throw handleFdError("Error binding Listening Socket: ", fdSock);
 
 	if (OK == listen(fdSock, SOMAXCONN)) {
-		cout << "Socket " << fdSock << " started listening on Port "
-			 << listenSock.getPort() << " host " << listenSock.getHost()
-			 << "\n";
+		LOGSOCKHOST(Logger::LOG, "Started listening on ", listenSock.getPort(),
+					listenSock.getHost());
 		return new Listening(fdSock, server, addr);
 	} else
 		throw handleFdError("Error starting to listen with socket ", fdSock);
 }
 
 Connection *Listening::handleIn() {
+	LOGSOCK(Logger::LOG, "Handel in ", _fd);
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
 
@@ -84,8 +87,8 @@ Connection *Listening::handleIn() {
 	}
 
 	setNonBlocking(clientFd);
-	cout << "Accepted connection on Listening socket " << _fd << "\n"
-		 << "New connection socket " << clientFd << endl;
+	LOGSOCK(Logger::LOG, "Accepted connection on Listening socket", _fd);
+	LOGSOCK(Logger::LOG, "New connection socket ", clientFd);
 
 	return new Connection(clientFd, _server, clientAddr);
 }

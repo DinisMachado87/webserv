@@ -15,6 +15,11 @@
 #define TIMEOUT 1000
 #define RECV_SIZE 1000
 #define CHUNK_SIZE 1000
+// logger
+#define LOGLEVEL LOG
+#define LOGGING true
+#define LOGTOCLI true
+#define LOGTOFILE true
 
 // HTTP Parser Limits
 #define MAX_HEADER_SIZE 8192
