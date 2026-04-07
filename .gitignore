@@ -1,8 +1,0 @@
-documentation
-*.vim
-.cache
-compile_commands.json
-.clang-format
-serverLog.txt
-.gitignore
-Makefile
