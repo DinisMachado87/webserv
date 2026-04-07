@@ -1,6 +1,7 @@
 
 
 #include "DirectoryResponse.hpp"
+#include "ErrorResponse.hpp"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sstream>
@@ -88,10 +89,23 @@ int	DirectoryResponse::setResponseBody(void)
 
 bool	DirectoryResponse::sendResponse(const int &clientFD)
 {
-	setResponseBody();
-	generateHeader();
-	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
-	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	try {
+		setResponseBody();
+		generateHeader();
+		ssize_t	ret = 0;
+		ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	}
+	catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		ErrorResponse error(_location, NULL);
+		error.setErrorCode(500);
+		error.sendResponse(clientFD);
+	}
 	return 1;
 }
