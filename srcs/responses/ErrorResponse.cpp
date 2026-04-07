@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/27 15:02:57 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 11:28:50 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,11 @@ int	ErrorResponse::setResponseBody(void)
 	body << _msg4;
 	_responseBody = body.str();
 	return (0);
+}
+
+void	ErrorResponse::setErrorCode(uint code)
+{
+	_errorCode = code;
 }
 
 std::map<uint, const char*>	makeTitles(void)
