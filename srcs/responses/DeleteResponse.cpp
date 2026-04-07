@@ -6,23 +6,12 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/31 14:25:57 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/31 14:44:59 by smoon            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   DeleteResponse.cpp                                    :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/26 13:17:10 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 13:26:56 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "DeleteResponse.hpp"
+#include "ErrorResponse.hpp"
 
 
 
@@ -55,10 +44,23 @@ int	DeleteResponse::deleteFile(void)
 
 bool	DeleteResponse::sendResponse(const int &clientFD)
 {
-	deleteFile();
-	generateHeader();
-	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
-	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 1;
+	try {
+		deleteFile();
+		generateHeader();
+		ssize_t	ret = 0;
+		ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		// ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
+		// if (ret < 0)
+		// 	throw std::runtime_error("sendResponse: send failure");
+		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	}
+	catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		ErrorResponse error(_location, NULL);
+		error.setErrorCode(500);
+		error.sendResponse(clientFD);
+	}
+	return 0;
 }
