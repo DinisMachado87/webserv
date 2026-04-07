@@ -1,9 +1,11 @@
 #include "Connection.hpp"
 #include "ASocket.hpp"
+#include "Logger.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
 #include "Server.hpp"
 #include "webServ.hpp"
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <fstream>
@@ -15,9 +17,9 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
-using std::cerr;
 using std::cout;
 using std::endl;
+using std::fill;
 using std::ifstream;
 using std::runtime_error;
 using std::string;
@@ -28,7 +30,10 @@ Connection::Connection(const int fd, const Server &server,
 	ASocket(fd, server, serverAddr),
 	_validator(server),
 	_cur(0),
-	_back(0) {}
+	_back(0) {
+	for (size_t i = 0; i < RESPONSES_CUE_SIZE; i++)
+		_responses[i] = NULL;
+}
 
 Connection::~Connection() {}
 
@@ -56,12 +61,14 @@ Connection *Connection::handleIn() {
 };
 
 void Connection::handleOut() {
-	if (!_responses[_cur])
-		cerr << "Warning: Socket handleOut without a response" << endl;
+	if (!_responses[_cur]) {
+		LOG(Logger::WARNING, "Socket handleOut without a response");
+		return;
+	}
 
-	else if (DONE == _responses[_cur]->sendResponse(_fd)) {
+	if (DONE == _responses[_cur]->sendResponse(_fd)) {
 		delete _responses[_cur];
-		_responses[_cur++] = NULL;
+		_responses[_cur] = NULL;
 		_cur = (_cur + 1) % RESPONSES_CUE_SIZE;
 	}
 }

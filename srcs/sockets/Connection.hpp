@@ -5,6 +5,7 @@
 #include "HttpParser.hpp"
 #include "Server.hpp"
 #include "Validator.hpp"
+#include "webServ.hpp"
 #include <cstddef>
 #include <sys/epoll.h>
 
@@ -12,7 +13,7 @@ class Connection : public ASocket {
 private:
 	HttpParser _http;
 	Validator _validator;
-	Response *_responses[10];
+	Response *_responses[RESPONSES_CUE_SIZE];
 	size_t _cur;
 	size_t _back;
 

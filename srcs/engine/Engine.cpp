@@ -48,15 +48,15 @@ Engine::~Engine() {
 }
 
 // Error handeling
-runtime_error Engine::handleError(const string errMsg) {
-	return runtime_error(errMsg + strerror(errno));
+runtime_error Engine::handleError(const string errMsg, const int err) {
+	return runtime_error(errMsg + strerror(err));
 }
 
 // Public Methods
 void Engine::epoll_init() {
 	_fdEpoll = epoll_create(1);
 	if (_fdEpoll < 0)
-		throw handleError("Error Epoll_create: ");
+		throw handleError("Error Epoll_create: ", errno);
 }
 
 ASocket *Engine::getSocket(int fd) {
@@ -73,16 +73,16 @@ void Engine::setEventTo(int epollFd, uint operation, uint eventType,
 	event.data.ptr = socket;
 	if (OK == epoll_ctl(epollFd, operation, socketFd, &event))
 		return;
-	throw handleError("Error setting epoll socket event type: ");
+	throw handleError("Error setting epoll socket event type: ", errno);
 }
 
 void Engine::addSocket(ASocket *socket) {
 	if (!socket)
-		throw handleError("Error null socket");
+		throw handleError("Error null socket", errno);
 
 	int fd = socket->getFd();
 	if (!socket || fd < 0)
-		throw handleError("Error adding socket");
+		throw handleError("Error adding socket", errno);
 
 	_sockets[fd] = socket;
 	setEventTo(_fdEpoll, EPOLL_CTL_ADD,
@@ -130,15 +130,17 @@ void Engine::pollLoop() {
 	struct epoll_event events[MAX_EVENTS];
 	int nFds = -1;
 
-	while (true) {
+	while (!g_shutdown) {
+		nFds = -1;
 		nFds = epoll_wait(_fdEpoll, events, MAX_EVENTS, TIMEOUT);
+		std::cout << "Read " << nFds << " fd's" << endl;
 		if (ERR == nFds) {
 			if (errno == EINTR)
 				continue;
-			handleError("Epoll_wait error: ");
+			throw handleError("Epoll_wait error: ", errno);
 		}
 
-		for (int i = 0; i < nFds; i++) {
+		for (int i = 0; i < nFds && !g_shutdown; i++) {
 			ASocket *socket = static_cast<ASocket *>(events[i].data.ptr);
 			uint32_t ev = events[i].events;
 			try {
@@ -157,7 +159,8 @@ void Engine::pollLoop() {
 				updateFlags(socket);
 
 			} catch (const exception err) {
-				cerr << "Error handeling socket event: " << err.what() << endl;
+				LOG_ERROR(runtime_error(
+					string("Error handeling socket event: ") + err.what()));
 				deleteSocket(socket);
 			}
 		}

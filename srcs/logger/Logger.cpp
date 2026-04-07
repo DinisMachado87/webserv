@@ -32,8 +32,8 @@ using std::string;
 using std::stringstream;
 
 Logger *Logger::_loggerPtr = NULL;
-const char *Logger::_labels[] = {"[NONE]", "[ERROR]", "[WARNING]", "[DEBUG]",
-								 "[LOG]"};
+const char *Logger::_labels[]
+	= {"[NONE]", "[ERROR]", "[WARNING]", "[DEBUG]", "[LOG]"};
 // Public constructors and destructors
 Logger::Logger() :
 	_level(LOGLEVEL) {}
@@ -86,12 +86,7 @@ void Logger::color(const int level, stringstream &stream) {
 }
 
 void Logger::info(const int level, const char *msg, stringstream &stream) {
-	stream << _labels[level] << msg;
-}
-
-void Logger::info(const int level, const runtime_error &msg,
-				  stringstream &stream) {
-	stream << _labels[level] << msg.what();
+	stream << _labels[level] << " " << msg;
 }
 
 void Logger::addHost(stringstream &stream, in_addr_t host) {

@@ -24,7 +24,7 @@ SRCS_SOCKET		:= sockets ASocket.cpp Listening.cpp Connection.cpp
 SRCS_PARSER		:= parser Token.cpp Expect.cpp ConfParser.cpp HttpParser.cpp 
 SRCS_RESPONSES	:= responses Response.cpp GetResponse.cpp ErrorResponse.cpp CGIResponse.cpp DirectoryResponse.cpp
 SRCS_REQUESTS	:= requests Request.cpp Validator.cpp
-SRCS_UTILS		:= utils StrView.cpp
+SRCS_UTILS		:= utils StrView.cpp Clock.cpp
 SRCS_LOGGER		:= logger Logger.cpp
 
 SRC_GROUPS		:= SRCS_ENGINE SRCS_SERVER SRCS_SOCKET SRCS_PARSER SRCS_UTILS \
