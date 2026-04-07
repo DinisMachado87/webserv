@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/31 14:25:57 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 13:26:56 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 16:42:27 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ int	DeleteResponse::generateHeader(void)
 
 int	DeleteResponse::deleteFile(void)
 {
-	return (std::remove(this->_request->getFilePath().c_str()));
+	return (std::remove(_request->getFilePath().c_str()));
 }
 
 bool	DeleteResponse::sendResponse(const int &clientFD)

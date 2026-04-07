@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 15:43:30 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 16:42:22 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,7 @@ static int	executePHP(void)
 int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 {
 	_CGIFileType = PHP;
-	this->setEnvironment();
+	setEnvironment();
 	close(pipeC2P[0]);
 	close(pipeP2C[1]);
 	if (dup2(pipeC2P[1], STDOUT_FILENO) < 0 || dup2(pipeP2C[0], STDIN_FILENO) < 0)
@@ -167,22 +167,22 @@ int		CGIResponse::setResponseBody(void)
 	ssize_t	chunk = 8192;
 	ssize_t	size;
 	ssize_t	oldSize = 0;
-	this->_responseBody.resize(chunk);
+	_responseBody.resize(chunk);
 	while (res > 0)
 	{
-		size = this->_responseBody.size();
+		size = _responseBody.size();
 		res = read(pipeC2P[0], &_responseBody[size - chunk], chunk);
 		if (res == -1)
 			throw std::runtime_error("setResponseBody: read failure");
 		if (res < chunk)
 			break ;
 		oldSize = size;
-		this->_responseBody.resize(size + chunk);
+		_responseBody.resize(size + chunk);
 	}
 	if (res != -1)
 	{
 		size = strlen(_responseBody.c_str());
-		this->_responseBody.resize(strlen(_responseBody.c_str()));
+		_responseBody.resize(strlen(_responseBody.c_str()));
 	}
 	close(pipeC2P[0]);
 	int	status = 0;
@@ -191,23 +191,23 @@ int		CGIResponse::setResponseBody(void)
 		status = WEXITSTATUS(status);
 	if (status != 0)
 		throw std::runtime_error("child process: execution failure");
-	printf("[written: %lu] [status: %d]\n\n", this->_responseBody.size(), status);
+	printf("[written: %lu] [status: %d]\n\n", _responseBody.size(), status);
 	return (0);
 }
 
 std::string	*CGIResponse::getCGIoutput(void)
 {
-	return (&this->_responseBody);
+	return (&_responseBody);
 }
 
 void	CGIResponse::setEnvironment(void)
 {
-	// if (this->_metaVs.AUTH_TYPE)
-	// 	setenv("AUTH_TYPE", this->_metaVs.AUTH_TYPE, 1);
+	// if (_metaVs.AUTH_TYPE)
+	// 	setenv("AUTH_TYPE", _metaVs.AUTH_TYPE, 1);
 	// else
 	// 	setenv("AUTH_TYPE", "NULL", 1);
 
-	const int& contentLength = this->_request->getContentLength();
+	const int& contentLength = _request->getContentLength();
 	if (contentLength >= 0)
 	{
 		char	buf[32];
@@ -217,7 +217,7 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("CONTENT_LENGTH", "", 1);
 
-	const std::string& contentType = this->_request->getContentType();
+	const std::string& contentType = _request->getContentType();
 	if (!contentType.empty())
 		setenv("CONTENT_TYPE", contentType.c_str(), 1);
 	// else
@@ -225,47 +225,47 @@ void	CGIResponse::setEnvironment(void)
 
 	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
 
-	const std::string& requestPath = this->_request->getRequestPath();
+	const std::string& requestPath = _request->getRequestPath();
 	if (!requestPath.empty())
 		setenv("PATH_INFO", requestPath.c_str(), 1);
 	else
 		setenv("PATH_INFO", "", 1);
 
-	// if (this->_metaVs.PATH_TRANSLATED)
-		// setenv("PATH_TRANSLATED", this->_metaVs.PATH_TRANSLATED, 1);
+	// if (_metaVs.PATH_TRANSLATED)
+		// setenv("PATH_TRANSLATED", _metaVs.PATH_TRANSLATED, 1);
 	// else
 	// 	setenv("PATH_TRANSLATED", "NULL", 1);
 
-	const std::string& queryString = this->_request->getQueryString();
+	const std::string& queryString = _request->getQueryString();
 	if (!queryString.empty())
 		setenv("QUERY_STRING", queryString.c_str(), 1);
 	// else
 	// 	setenv("QUERY_STRING", "NULL", 1);
 
-	const std::string& remoteAddr = this->_request->getRemoteAddr();
+	const std::string& remoteAddr = _request->getRemoteAddr();
 	if (!remoteAddr.empty())
 		setenv("REMOTE_ADDR", remoteAddr.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_ADDR", "NULL", 1);
 
-	const std::string& remoteHost = this->_request->getRemoteHost();
+	const std::string& remoteHost = _request->getRemoteHost();
 	if (!remoteHost.empty())
 		setenv("REMOTE_HOST", remoteHost.c_str(), 1);
 	// else
 	// 	setenv("REMOTE_HOST", "NULL", 1);
 
-	// if (this->_metaVs.REMOTE_IDENT)
-	// 	setenv("REMOTE_IDENT", this->_metaVs.REMOTE_IDENT, 1);
+	// if (_metaVs.REMOTE_IDENT)
+	// 	setenv("REMOTE_IDENT", _metaVs.REMOTE_IDENT, 1);
 	// else
 	// 	setenv("REMOTE_IDENT", "NULL", 1);
 
-	// if (this->_metaVs.REMOTE_USER)
-	// 	setenv("REMOTE_USER", this->_metaVs.REMOTE_USER, 1);
+	// if (_metaVs.REMOTE_USER)
+	// 	setenv("REMOTE_USER", _metaVs.REMOTE_USER, 1);
 	// else
 	// 	setenv("REMOTE_USER", "NULL", 1);
 
 
-	switch (this->_request->getType()) {
+	switch (_request->getType()) {
 		case REQ_GET:
 			setenv("REQUEST_METHOD", "GET", 1);
 			break ;
@@ -281,31 +281,31 @@ void	CGIResponse::setEnvironment(void)
 	// else
 	// 	setenv("REQUEST_METHOD", "NULL", 1);
 
-	const std::string& scriptName = this->_request->getFilePath();
+	const std::string& scriptName = _request->getFilePath();
 	std::cout << "script name: " << scriptName << std::endl;
 	if (!scriptName.empty())
 		setenv("SCRIPT_NAME", scriptName.c_str(), 1);
 	// else
 	// 	setenv("SCRIPT_NAME", "NULL", 1);
 
-	// if (this->_metaVs.SERVER_NAME)
+	// if (_metaVs.SERVER_NAME)
 	setenv("SERVER_NAME", "PNC webserv", 1);
 	// else
 	// 	setenv("SERVER_NAME", "NULL", 1);
 
-	// if (this->_metaVs.SERVER_PORT)
+	// if (_metaVs.SERVER_PORT)
 	char	buf[32];
-	// ::snprintf(buf, 32, "%d", this->_requestVars->port);
+	// ::snprintf(buf, 32, "%d", _requestVars->port);
 	setenv("SERVER_PORT", buf, 1);
 	// else
 	// 	setenv("SERVER_PORT", "NULL", 1);
 
-	// if (this->_metaVs.SERVER_PROTOCOL)
+	// if (_metaVs.SERVER_PROTOCOL)
 	setenv("SERVER_PROTOCOL", "HTTP/1.1", 1);
 	// else
 	// 	setenv("SERVER_PROTOCOL", "NULL", 1);
 
-	// if (this->_metaVs.SERVER_SOFTWARE)
+	// if (_metaVs.SERVER_SOFTWARE)
 		setenv("SERVER_SOFTWARE", SERVER_NAME, 1);
 	// else
 	// 	setenv("SERVER_SOFTWARE", "NULL", 1);

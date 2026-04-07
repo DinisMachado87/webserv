@@ -35,7 +35,7 @@ int	DirectoryResponse::generateHeader(void)
 
 int	DirectoryResponse::setResponseBody(void)
 {
-	DIR *dir = opendir(this->_request->getFilePath().c_str());
+	DIR *dir = opendir(_request->getFilePath().c_str());
 	if (!dir)
 		return -1;
 
@@ -43,10 +43,10 @@ int	DirectoryResponse::setResponseBody(void)
 	body << "<!DOCTYPE html>\r\n";
 	body << "<html>\r\n";
 	body << "<head>\r\n";
-	body << "<title>Index of " << this->_request->getFilePath() << "</title>\r\n";
+	body << "<title>Index of " << _request->getFilePath() << "</title>\r\n";
 	body << "</head>\r\n";
 	body << "<body>\r\n";
-	body << "<h1>Index of " << this->_request->getFilePath() << "</h1>\r\n";
+	body << "<h1>Index of " << _request->getFilePath() << "</h1>\r\n";
 	body << "<ul>\r\n";
 
 	struct dirent *entry;
@@ -58,7 +58,7 @@ int	DirectoryResponse::setResponseBody(void)
 		if (name == ".")
 			continue;
 
-		std::string fullPath = this->_request->getFilePath();
+		std::string fullPath = _request->getFilePath();
 		if (fullPath[fullPath.length() - 1] != '/')
 			fullPath += "/";
 		fullPath += name;
