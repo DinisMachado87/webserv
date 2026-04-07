@@ -54,7 +54,7 @@ private:
 	Logger::logger()->log(level, msg, num, 0, INT_MAX)
 #define LOGSOCK(level, msg, socket)                                            \
 	Logger::logger()->log(level, msg, NONUM, socket, INT_MAX)
-#define LOGSOCKNUM(level, msg, socket, num)                                    \
+#define LOGSOCKNUM(level, msg, num, socket)                                    \
 	Logger::logger()->log(level, msg, num, socket, INT_MAX)
 #define LOGSOCKHOST(level, msg, socket, host)                                  \
 	Logger::logger()->log(level, msg, NONUM, socket, host)

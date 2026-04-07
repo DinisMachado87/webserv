@@ -15,7 +15,6 @@
 #include <string>
 
 using std::cerr;
-using std::flush;
 
 #define COLOR_DEBUG "\033[36m" // Cyan
 #define COLOR_INFO "\033[32m"  // Green
