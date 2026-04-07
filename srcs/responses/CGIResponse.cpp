@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 13:05:32 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 15:43:30 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,7 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 			write(1, _responseHeader.c_str(), _responseHeader.size());
 			_headerSent = 1;
 		}
+
 		static ssize_t	chunk = CHUNK_SIZE;
 		static ssize_t	totalSent = 0;
 		static ssize_t	bodySize = _responseBody.size();
@@ -66,6 +67,7 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 				throw std::runtime_error("sendResponse: send failure");
 			return 0;
 		}
+
 		int	toSend = std::min(chunk, bodySize - totalSent);
 		std::string	hex = toHex(toSend);
 		ret = send(clientFD, hex.c_str(), hex.size(), 0);
