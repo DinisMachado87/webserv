@@ -6,3 +6,5 @@ compile_commands.json
 srcs/responses/*
 srcs/requests/*
 serverLog.txt
+.gitignore
+Makefile
