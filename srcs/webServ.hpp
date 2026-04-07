@@ -7,8 +7,8 @@
 #define OK 0
 #define ERR -1
 // Multical returns
-#define ONGOING 1
-#define DONE 0
+#define ONGOING false
+#define DONE true
 // EPOLL Macros
 #define MAX_EVENTS 1024
 #define RESPONSES_CUE_SIZE 10
@@ -28,6 +28,6 @@
 typedef unsigned int uint;
 typedef unsigned char uchar;
 
-// volatile sig_atomic_t g_shutdown = 0;
+extern volatile sig_atomic_t g_shutdown;
 
 #endif

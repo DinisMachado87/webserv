@@ -32,7 +32,6 @@ runtime_error ASocket::handleError(const string errMsg) {
 
 // Public Methods
 int ASocket::getFd() const { return (_fd); }
-uint32_t ASocket::getCurEvents() const { return _events; }
 
 int ASocket::setNonBlocking(int fd) {
 	int flags = fcntl(fd, F_GETFD);
@@ -50,3 +49,4 @@ uint32_t ASocket::trackCurEvents(uint32_t events) {
 bool ASocket::isFull() { return false; }
 void ASocket::handleOut() {};
 uint32_t ASocket::getEventsNextLoop() { return EPOLLIN; }
+uint32_t ASocket::getCurEvents() const { return _events; }
