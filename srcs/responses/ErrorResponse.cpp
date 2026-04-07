@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 14:17:40 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 14:25:53 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,7 +88,7 @@ void	ErrorResponse::setErrorCode(uint code)
 	_errorCode = code;
 }
 
-bool	Response::sendResponse(const int &clientFD)
+bool	ErrorResponse::sendResponse(const int &clientFD)
 {
 	try {
 		setResponseBody();
