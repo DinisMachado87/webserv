@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:23 by akosloff          #+#    #+#             */
-/*   Updated: 2026/04/07 15:43:35 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/07 16:26:32 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,24 +56,27 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead)
 		return NULL;
 	}
 
+
 	Request* req = new Request();
+
 
 	/* Parse only the header section first. */
 	/* find end of first line and send to firstLineParse function */
-	size_t lineEnd = _buffer.find("\r\n", 0, _headerEnd); // we can safely search for \r\n only within the header block,
-	if (lineEnd == std::string::npos)
+	size_t lineEnd = _buffer.find("\r\n"); // we can safely search for \r\n only within the header block,
+	if (lineEnd == std::string::npos || lineEnd > _headerEnd) // if no \r\n or if it's after the header end, it's a bad request
 	{
 		req->setParseError(400, "Bad request line");
 		return eraseHeaderAndReturn(req, _headerEnd);
 	}
-
 	if (!firstLineParse(0, lineEnd, *req))
 		return eraseHeaderAndReturn(req, _headerEnd);
 	
+
 	/* loop through all header lines and parse them */
 	size_t current = lineEnd + 2;
 	while (current < _headerEnd + 4)
 	{
+
 		size_t next = _buffer.find("\r\n", current);
 		if (next == std::string::npos)
 		{
@@ -125,29 +128,31 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead)
 
 	/* Remove only the current request from the buffer. */
 	_buffer.erase(0, totalNeeded);
-
+	
 	return req;
 }
 
 /* Parse the first request line: METHOD space REQUEST-TARGET space HTTP-VERSION */
 bool HttpParser::firstLineParse(size_t startLine, size_t length, Request& req)
 {
-	size_t firstSpace = _buffer.find(" ", startLine, length);
-	if (firstSpace == std::string::npos)
+	size_t lineEnd = startLine + length;
+	
+	size_t firstSpace = _buffer.find(" ", startLine);
+	if (firstSpace == std::string::npos || firstSpace >= lineEnd)
 	{
 		req.setParseError(400, "Bad request line: missing first space");
 		return false;
 	}
 
-	size_t secondSpace = _buffer.find(" ", firstSpace + 1, length - (firstSpace - startLine + 1));
-	if (secondSpace == std::string::npos)
+	size_t secondSpace = _buffer.find(" ", firstSpace + 1);
+	if (secondSpace == std::string::npos || secondSpace >= lineEnd)
 	{
 		req.setParseError(400, "Bad request line: missing second space");
 		return false;
 	}
 
-	size_t thirdSpace = _buffer.find(" ", secondSpace + 1, length - (secondSpace - startLine + 1));
-	if (thirdSpace != std::string::npos)
+	size_t thirdSpace = _buffer.find(" ", secondSpace + 1);
+	if (thirdSpace != std::string::npos && thirdSpace < lineEnd)
 	{
 		req.setParseError(400, "Bad request line: too many spaces");
 		return false;
@@ -234,13 +239,6 @@ bool HttpParser::headerParse(size_t startLine, size_t length, Request& req, bool
 	}
 
 	// Get trimmed bounds for name and value (no string copies)
-	// Verify bounds are valid BEFORE trimming
-	if (colonPos >= _buffer.size() || startLine + length > _buffer.size())
-	{
-		req.setParseError(400, "Invalid header line bounds");
-		return false;
-	}
-
 	size_t nameStart = startLine;
 	size_t nameEnd = colonPos;
 	trimSpacesBounds(nameStart, nameEnd);
@@ -249,7 +247,7 @@ bool HttpParser::headerParse(size_t startLine, size_t length, Request& req, bool
 	size_t valueEnd = startLine + length;
 	trimSpacesBounds(valueStart, valueEnd);
 
-	if (nameStart >= nameEnd || valueStart > valueEnd)
+	if (nameStart >= nameEnd)
 	{
 		req.setParseError(400, "Invalid header name");
 		return false;
@@ -337,6 +335,20 @@ bool HttpParser::headerParse(size_t startLine, size_t length, Request& req, bool
 	/*  normalized header name */
 	req.addHeader(name, value);
 	return true;
+}
+
+std::string HttpParser::trimSpaces(const std::string& s) const
+{
+	size_t start = 0;
+	size_t end = s.size();
+
+	while (start < end && (s[start] == ' ' || s[start] == '\t'))
+		start++;
+
+	while (end > start && (s[end - 1] == ' ' || s[end - 1] == '\t'))
+		end--;
+
+	return s.substr(start, end - start);
 }
 
 /* Get trimmed bounds from buffer positions without creating a string copy */

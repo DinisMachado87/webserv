@@ -56,7 +56,7 @@ private:
 	bool validateHeaders(Request& req, bool& clearBufferOnError) const;
 	Request* parseChunkedBody(Request* req, size_t headerEnd);
 
-	//std::string trimSpaces(size_t startPos, size_t length) const;
+	std::string trimSpaces(const std::string& s) const;
 	void trimSpacesBounds(size_t& start, size_t& end) const;
 	void toLowerCase(std::string& s);
 	bool isDigits(const std::string& s) const;
