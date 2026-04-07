@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 13:53:15 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 15:22:33 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,8 @@ Response::Response(Location* loc, Request* req) : _location(loc), _request(req)
 
 Response::~Response(void)
 {
-
+	if (_request)
+		delete _request;
 }
 
 int	Response::generateHeader(void)
