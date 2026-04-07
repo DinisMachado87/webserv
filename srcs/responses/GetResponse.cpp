@@ -6,13 +6,12 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/26 13:17:10 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 13:51:20 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "GetResponse.hpp"
-
-
+#include "ErrorResponse.hpp"
 
 GetResponse::GetResponse(Location* loc, Request* req) : Response(loc, req)
 {
@@ -40,8 +39,11 @@ int	GetResponse::generateHeader(void)
 
 int	GetResponse::setResponseBody(void)
 {
-	int		fd = open(this->_request->getFilePath().c_str(), O_RDONLY);
 	ssize_t	res = 1;
+	int		fd = open(this->_request->getFilePath().c_str(), O_RDONLY);
+	if (res < 0)
+			throw std::runtime_error("setResponseBody: open failure");
+	res = 1;
 	ssize_t	chunk = 8192;
 	ssize_t	size;
 	ssize_t	oldSize = 0;
@@ -50,6 +52,8 @@ int	GetResponse::setResponseBody(void)
 	{
 		size = this->_responseBody.size();
 		res = read(fd, &this->_responseBody[size - chunk], chunk);
+		if (res == -1)
+			throw std::runtime_error("setResponseBody: read failure");
 		if (res < chunk)
 			break ;
 		oldSize = size;
