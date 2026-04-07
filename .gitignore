@@ -3,8 +3,6 @@ documentation
 .cache
 compile_commands.json
 .clang-format
-srcs/responses/*
-srcs/requests/*
 serverLog.txt
 .gitignore
 Makefile
