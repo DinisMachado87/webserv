@@ -10,6 +10,7 @@
 #include <map>
 #include <netinet/in.h>
 #include <ostream>
+#include <sstream>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
@@ -19,6 +20,7 @@
 using std::cout;
 using std::endl;
 using std::string;
+using std::stringstream;
 
 // Public constructors and destructors
 Overrides::Overrides(std::string &strBuf, std::vector<StrView> &vecBuf) :
@@ -122,57 +124,63 @@ uchar Location::isAllowedMethod(uchar methodToCheck) const {
 in_addr_t Listen::getHost() const { return _host; }
 
 uint16_t Listen::getPort() const { return _port; }
-void Server::print() const {
-	cout << "----- SERVER -----" << endl;
 
-	cout << "\nListen addresses (" << _listen.size() << "):" << endl;
+void Server::getServerStr(stringstream &stream) const {
+	if (!LOGGING)
+		return;
+
+	stream << "----- SERVER -----" << '\n';
+
+	stream << "\nListen addresses (" << _listen.size() << "):" << '\n';
 	for (size_t i = 0; i < _listen.size(); i++) {
-		cout << "  [" << i << "] Host: " << formatIP(_listen[i].getHost())
-			 << ", Port: " << _listen[i].getPort() << endl;
+		stream << "  [" << i << "] Host: " << formatIP(_listen[i].getHost())
+			   << ", Port: " << _listen[i].getPort() << '\n';
 	}
 
-	printOverrides(_defaults, "Defaults");
+	printOverrides(_defaults, "Defaults", stream);
 
-	cout << "\nLocations (" << _locations.size() << "):" << endl;
+	stream << "\nLocations (" << _locations.size() << "):" << '\n';
 	for (size_t i = 0; i < _locations.size(); i++) {
-		printLocation(_locations[i], i);
+		printLocation(_locations[i], i, stream);
 	}
 
-	printBufferSizes();
+	printBufferSizes(stream);
 
-	cout << "-----" << endl;
+	stream << "-----" << '\n';
 }
 
-void Server::printOverrides(const Overrides &over, const char *label) const {
-	cout << "\n" << label << ":" << endl;
-	cout << "  Root: " << safeStr(over.getRoot()) << endl;
-	cout << "  Autoindex: " << (over.isAutoindexed() ? "true" : "false")
-		 << endl;
-	cout << "  Client Max Body: " << over.getClientMaxBody() << endl;
-	cout << "  Index files: " << over.getIndex().len() << endl;
-	cout << "  Error pages: " << over.getErrorMapSize() << endl;
+void Server::printOverrides(const Overrides &over, const char *label,
+							stringstream &stream) const {
+	stream << "\n" << label << ":" << '\n';
+	stream << "  Root: " << safeStr(over.getRoot()) << '\n';
+	stream << "  Autoindex: " << (over.isAutoindexed() ? "true" : "false")
+		   << '\n';
+	stream << "  Client Max Body: " << over.getClientMaxBody() << '\n';
+	stream << "  Index files: " << over.getIndex().len() << '\n';
+	stream << "  Error pages: " << over.getErrorMapSize() << '\n';
 }
 
-void Server::printLocation(const Location &loc, size_t index) const {
-	cout << "  [" << index << "] Path: " << safeStr(loc.getPath()) << endl;
-	cout << "      Return Code: " << loc.getReturncode() << endl;
-	cout << "      Return Path: " << safeStr(loc.getReturnPath()) << endl;
-	cout << "      Upload Enabled: "
-		 << (loc.getUploadEnabled() ? "true" : "false") << endl;
-	cout << "      Upload Path: " << safeStr(loc.getUploadPath()) << endl;
-	cout << "      CGI Extensions: " << loc.getCgiExtensions().len() << endl;
-	cout << "      Allowed Methods: " << static_cast<int>(loc._allowedMethods)
-		 << endl;
+void Server::printLocation(const Location &loc, size_t index,
+						   stringstream &stream) const {
+	stream << "  [" << index << "] Path: " << safeStr(loc.getPath()) << '\n';
+	stream << "      Return Code: " << loc.getReturncode() << '\n';
+	stream << "      Return Path: " << safeStr(loc.getReturnPath()) << '\n';
+	stream << "      Upload Enabled: "
+		   << (loc.getUploadEnabled() ? "true" : "false") << '\n';
+	stream << "      Upload Path: " << safeStr(loc.getUploadPath()) << '\n';
+	stream << "      CGI Extensions: " << loc.getCgiExtensions().len() << '\n';
+	stream << "      Allowed Methods: " << static_cast<int>(loc._allowedMethods)
+		   << '\n';
 }
 
-void Server::printBufferSizes() const {
-	cout << "\nBuffer Sizes:" << endl;
-	cout << "  String buffer: " << _strBuf.size() << "/" << _strBuf.capacity()
-		 << endl;
-	cout << "  StrView buffer: " << _strvVecBuf.size() << "/"
-		 << _strvVecBuf.capacity() << endl;
-	cout << "  Int buffer: " << _intVecBuf.size() << "/"
-		 << _intVecBuf.capacity() << endl;
+void Server::printBufferSizes(stringstream &stream) const {
+	stream << "\nBuffer Sizes:" << '\n';
+	stream << "  String buffer: " << _strBuf.size() << "/" << _strBuf.capacity()
+		   << '\n';
+	stream << "  StrView buffer: " << _strvVecBuf.size() << "/"
+		   << _strvVecBuf.capacity() << '\n';
+	stream << "  Int buffer: " << _intVecBuf.size() << "/"
+		   << _intVecBuf.capacity() << '\n';
 }
 
 const char *Server::safeStr(const char *str) const {

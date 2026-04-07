@@ -3,10 +3,12 @@
 #include "ConfParser.hpp"
 #include "Connection.hpp"
 #include "Listening.hpp"
+#include "Logger.hpp"
 #include "webServ.hpp"
 #include <bits/types/error_t.h>
 #include <cerrno>
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <map>
 #include <netinet/in.h>
@@ -20,8 +22,8 @@
 
 using std::cerr;
 using std::endl;
+using std::exception;
 using std::map;
-using std::pair;
 using std::runtime_error;
 using std::string;
 using std::vector;
@@ -67,8 +69,8 @@ ASocket *Engine::getSocket(int fd) {
 void Engine::setEventTo(int epollFd, uint operation, uint eventType,
 						int socketFd, ASocket *socket) {
 	struct epoll_event event;
-	event.events = socket->addAndTrackCurEvents(eventType);
-	event.data.ptr = socket->getPtrToSelf();
+	event.events = eventType;
+	event.data.ptr = socket;
 	if (OK == epoll_ctl(epollFd, operation, socketFd, &event))
 		return;
 	throw handleError("Error setting epoll socket event type: ");
@@ -79,20 +81,19 @@ void Engine::addSocket(ASocket *socket) {
 		throw handleError("Error null socket");
 
 	int fd = socket->getFd();
-	if (socket && fd > 0) {
-		_sockets[fd] = socket;
-		setEventTo(_fdEpoll, EPOLL_CTL_ADD, EPOLLIN, fd, socket);
-	} else
+	if (!socket || fd < 0)
 		throw handleError("Error adding socket");
+
+	_sockets[fd] = socket;
+	setEventTo(_fdEpoll, EPOLL_CTL_ADD,
+			   socket->trackCurEvents(EPOLLIN | EPOLLET), fd, socket);
 }
 
-void Engine::deleteSocket(int fd) {
-	map<int, ASocket *>::iterator socket = _sockets.find(fd);
-	if (socket != _sockets.end()) {
-		setEventTo(_fdEpoll, EPOLL_CTL_DEL, 0, fd, socket->second);
-		delete socket->second;
-		_sockets.erase(socket);
-	}
+void Engine::deleteSocket(ASocket *socket) {
+	int fd = socket->getFd();
+	setEventTo(_fdEpoll, EPOLL_CTL_DEL, 0, fd, socket);
+	delete socket;
+	_sockets.erase(fd);
 }
 
 void Engine::buildServers(string &config) {
@@ -102,7 +103,9 @@ void Engine::buildServers(string &config) {
 
 void Engine::createSockets() {
 	vector<Server *>::iterator server = _servers.begin();
-	while (server != _servers.end()) {
+	vector<Server *>::iterator end = _servers.end();
+
+	while (server != end) {
 		vector<Listen>::iterator port = (*server)->_listen.begin();
 		while (port != (*server)->_listen.end()) {
 			Listening *socket = Listening::create(**server, *port);
@@ -110,6 +113,16 @@ void Engine::createSockets() {
 			port++;
 		}
 		server++;
+	}
+}
+
+void Engine::updateFlags(ASocket *socket) {
+	uint32_t events = socket->getCurEvents();
+	uint32_t newEvents = socket->getEventsNextLoop();
+
+	if (newEvents != events) {
+		socket->trackCurEvents(newEvents);
+		setEventTo(_fdEpoll, EPOLL_CTL_MOD, newEvents, socket->getFd(), socket);
 	}
 }
 
@@ -128,22 +141,25 @@ void Engine::pollLoop() {
 		for (int i = 0; i < nFds; i++) {
 			ASocket *socket = static_cast<ASocket *>(events[i].data.ptr);
 			uint32_t ev = events[i].events;
+			try {
+				if (ev & (EPOLLERR | EPOLLHUP)) {
+					deleteSocket(socket);
+					continue;
+				}
+				if (ev & EPOLLIN) {
+					while (Connection *connection = socket->handleIn())
+						if (connection)
+							addSocket(connection);
+				}
+				if (ev & EPOLLOUT)
+					socket->handleOut();
 
-			if (ev & (EPOLLERR | EPOLLHUP)) {
-				delete socket;
-				continue;
-			}
-			if (ev & EPOLLIN) {
-				Connection *connection = socket->handleIn();
-				if (connection)
-					addSocket(connection);
-			}
-			if (ev & EPOLLOUT)
-				socket->handleOut();
+				updateFlags(socket);
 
-			if (socket->setEpollOut())
-				setEventTo(_fdEpoll, EPOLL_CTL_MOD, EPOLLOUT, socket->getFd(),
-						   socket);
+			} catch (const exception err) {
+				cerr << "Error handeling socket event: " << err.what() << endl;
+				deleteSocket(socket);
+			}
 		}
 	}
 }
@@ -154,6 +170,6 @@ void Engine::run(string &config) {
 		createSockets();
 		pollLoop();
 	} catch (runtime_error err) {
-		cerr << err.what() << endl;
+		LOG_ERROR(err);
 	}
 }
