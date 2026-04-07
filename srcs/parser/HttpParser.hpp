@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpParser.hpp                                     :+:      :+:    :+:   */
+/*   HttpParser copy.hpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:13 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/30 14:21:52 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 15:41:45 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,7 @@ private:
 
 private:
 	std::string _buffer;
+	size_t 		_headerEnd;
 	std::string _fullMessage;
 	bool _isChunked;
 	std::string _decodedBody;
@@ -49,18 +50,22 @@ private:
 	Request* eraseHeaderAndReturn(Request* err, size_t headerEnd);
 	Request* clearBufferAndReturn(Request* err);
 
-	bool firstLineParse(const std::string& firstLine, Request& req);
-	bool headerParse(const std::string& headerLine, Request& req, bool& clearBufferOnError);
+	bool firstLineParse(size_t startLine, size_t length, Request& req);
+	bool headerParse(size_t startLine, size_t length, Request& req, bool& clearBufferOnError);
 	bool parseRequestTarget(const std::string& target, Request& req);
 	bool validateHeaders(Request& req, bool& clearBufferOnError) const;
 	Request* parseChunkedBody(Request* req, size_t headerEnd);
 
-	std::string trimSpaces(const std::string& s) const;
-	std::string toLower(const std::string& s) const;
+	//std::string trimSpaces(size_t startPos, size_t length) const;
+	void trimSpacesBounds(size_t& start, size_t& end) const;
+	void toLowerCase(std::string& s);
 	bool isDigits(const std::string& s) const;
-	bool isHexDigits(const std::string& s) const;
+	bool isHexDigits(size_t startPos, size_t length) const;
 	bool isValidHostValue(const std::string& s) const;
+	bool isValidHostValueRange(size_t start, size_t end) const;
 	bool isValidHeaderName(const std::string& s) const;
+	bool isValidHeaderNameRange(size_t start, size_t end) const;
+	bool hexStringToSize(size_t start, size_t length, size_t& result) const;
 };
 
 /* Responsibility:
