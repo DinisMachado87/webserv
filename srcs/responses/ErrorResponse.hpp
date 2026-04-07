@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/26 16:40:12 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 11:29:58 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 14:18:01 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@ public:
 	ErrorResponse(Location* loc, Request* req);
 	~ErrorResponse(void);
 	void	setErrorCode(uint code);
+	bool	sendResponse(const int &clientFD);
 
 
 
