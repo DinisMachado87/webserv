@@ -13,6 +13,8 @@ using std::runtime_error;
 using std::string;
 using std::stringstream;
 
+volatile sig_atomic_t g_shutdown = 0;
+
 static string readFile(const char *filepath) {
 	ifstream file(filepath);
 
@@ -25,40 +27,6 @@ static string readFile(const char *filepath) {
 	file.close();
 	return buffer.str();
 }
-//
-// void signal_handler(int signum) {
-// 	char msgSigint[] = "\nReceived SIGINT (Ctrl+C). Shutting down.\n";
-// 	char msgSigterm[] = "\nReceived SIGTERM. Shutting down.\n";
-// 	char msgDefault[] = "\nReceived signal. Shutting down.\n";
-// 	const char *msg;
-//
-// 	if (signum == SIGINT)
-// 		msg = msgSigint;
-// 	if (signum == SIGTERM)
-// 		msg = msgSigterm;
-// 	else
-// 		msg = msgDefault;
-//
-// 	write(STDOUT_FILENO, msg, strlen(msg));
-// 	g_shutdown = 1;
-// }
-//
-// void setup_signals() {
-// 	struct sigaction sa;
-//
-// 	sigemptyset(&sa.sa_mask);
-// 	sa.sa_flags = 0;
-//
-// 	// Custom handler for graceful shutdown
-// 	sa.sa_handler = signal_handler;
-// 	sigaction(SIGINT, &sa, NULL);
-// 	sigaction(SIGTERM, &sa, NULL);
-//
-// 	// Ignore broken pipe / client is gone
-// 	sa.sa_handler = SIG_IGN;
-// 	sigaction(SIGPIPE, &sa, NULL);
-// }
-//
 
 int main(int argc, char **argv) {
 	try {
