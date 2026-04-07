@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <string>
 #include <unistd.h>
+#include <stdint.h>
+#include "../parser/HttpParser.hpp"
 
 class Server;
 class Connection;
@@ -18,10 +20,13 @@ private:
 	ASocket &operator=(const ASocket &other);
 
 protected:
-	int _fd;
-	const Server &_server;
-	struct sockaddr_in _serverAddr;
-	uint32_t _events;
+	void*				_ptrToSelf;
+	int					_fd;
+	const Server&		_server;
+	struct sockaddr_in	_serverAddr;
+	HttpParser 			_parser;
+	Request*			_request;
+	uint32_t			_events;
 	// Constructors and destructors
 	ASocket(const int fd, const Server &server, struct sockaddr_in serverAddr);
 	// Error Handeling

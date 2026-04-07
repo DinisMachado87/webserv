@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
+/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:36 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/26 15:52:31 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/03/30 14:21:57 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,7 +127,6 @@ private:
 };
 
 
-
 /* Responsibility:
 
 represent one HTTP request
@@ -154,7 +153,7 @@ know how to serve files
 know how to execute CGI
 know how to create a Response
 
-So Request becomes a real data model object. 
+So Request becomes a real data model object.
 
 URL can split into 3 parts:
 after ? is the query string

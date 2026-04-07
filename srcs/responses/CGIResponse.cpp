@@ -6,11 +6,12 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/30 17:27:31 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 13:05:32 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CGIResponse.hpp"
+#include "ErrorResponse.hpp"
 
 
 
@@ -18,9 +19,8 @@ CGIResponse::CGIResponse(Location* loc, Request* req, const int& port) : Respons
 {
 	_headerSent = 0;
 	_port = port;
-	setResponseBody();
-	generateHeader();
 }
+
 CGIResponse::~CGIResponse(void)
 {
 
@@ -44,38 +44,60 @@ int	CGIResponse::generateHeader(void)
 
 bool	CGIResponse::sendResponse(const int &clientFD)
 {
-	if (!_headerSent)
-	{
-		send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0); //work out how to send this again when in another response
-		write(1, _responseHeader.c_str(), _responseHeader.size());
-		_headerSent = 1;
+	try {
+		ssize_t	ret = 0;
+		if (!_headerSent)
+		{
+			setResponseBody();
+			generateHeader();
+			ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
+			if (ret < 0)
+				throw std::runtime_error("sendResponse: send failure");
+			write(1, _responseHeader.c_str(), _responseHeader.size());
+			_headerSent = 1;
+		}
+		static ssize_t	chunk = CHUNK_SIZE;
+		static ssize_t	totalSent = 0;
+		static ssize_t	bodySize = _responseBody.size();
+		if (totalSent >= bodySize)
+		{
+			ret = send(clientFD, "0\r\n\r\n", 5, 0);
+			if (ret < 0)
+				throw std::runtime_error("sendResponse: send failure");
+			return 0;
+		}
+		int	toSend = std::min(chunk, bodySize - totalSent);
+		std::string	hex = toHex(toSend);
+		ret = send(clientFD, hex.c_str(), hex.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		write(1, hex.c_str(), hex.size());
+		ret = send(clientFD, _responseBody.c_str() + totalSent, toSend, 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		write(1, _responseBody.c_str() + totalSent, toSend);
+		ret = send(clientFD, "\r\n", 2, 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		write(1, "\r\n", 2);
+		totalSent += toSend;
+		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		return 1;
 	}
-	static ssize_t	chunk = CHUNK_SIZE;
-	static ssize_t	totalSent = 0;
-	static ssize_t	bodySize = _responseBody.size();
-	if (totalSent >= bodySize)
-	{
-		send(clientFD, "0\r\n\r\n", 5, 0);
-		return 0;
+	catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		ErrorResponse error(_location, NULL);
+		error.setErrorCode(500);
+		error.sendResponse(clientFD);
 	}
-	int	toSend = std::min(chunk, bodySize - totalSent);
-	std::string	hex = toHex(toSend);
-	send(clientFD, hex.c_str(), hex.size(), 0);
-	write(1, hex.c_str(), hex.size());
-	send(clientFD, _responseBody.c_str() + totalSent, toSend, 0);
-	write(1, _responseBody.c_str() + totalSent, toSend);
-	send(clientFD, "\r\n", 2, 0);
-	write(1, "\r\n", 2);
-	totalSent += toSend;
-	// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 1;
+	return 0;
 }
 
 static int	executeCGI(void)
 {
 	char*	fileName = getenv("SCRIPT_NAME");
 	char*	argv[] = { fileName, NULL };
-	execve (fileName, argv, environ);
+	execve(fileName, argv, environ);
 	return 1;
 }
 
@@ -127,28 +149,18 @@ int		CGIResponse::setResponseBody(void)
 {
 	int	pipeP2C[2];
 	int	pipeC2P[2];
-	if (pipe(pipeP2C) == -1 || pipe(pipeC2P))
-	{
-		perror("pipe");
-		return (-1);
-	}
+	if (pipe(pipeP2C) == -1 || pipe(pipeC2P) == -1)
+		throw std::runtime_error("setResponseBody: pipe failure");
 	int pid = fork();
 	if (pid == -1)
-	{
-		perror("fork");
-		return(-1);
-	}
+		throw std::runtime_error("setResponseBody: fork failure");
 	if (pid == 0)
-		this->childProcess(pipeP2C, pipeC2P);
+		childProcess(pipeP2C, pipeC2P);
 	close(pipeP2C[0]);
 	close(pipeC2P[1]);
-	const std::string& body = this->_request->getBody();
+	const std::string& body = _request->getBody();
 	write(pipeP2C[1], body.c_str(), body.size());
 	close(pipeP2C[1]);
-	int	status = 0;
-	waitpid(pid, &status, 0);
-	if (WIFEXITED(status))
-		status = WEXITSTATUS(status);
 	ssize_t	res = 1;
 	ssize_t	chunk = 8192;
 	ssize_t	size;
@@ -157,7 +169,9 @@ int		CGIResponse::setResponseBody(void)
 	while (res > 0)
 	{
 		size = this->_responseBody.size();
-		res = read(pipeC2P[0], &this->_responseBody[size - chunk], chunk);
+		res = read(pipeC2P[0], &_responseBody[size - chunk], chunk);
+		if (res == -1)
+			throw std::runtime_error("setResponseBody: read failure");
 		if (res < chunk)
 			break ;
 		oldSize = size;
@@ -168,8 +182,14 @@ int		CGIResponse::setResponseBody(void)
 		size = strlen(_responseBody.c_str());
 		this->_responseBody.resize(strlen(_responseBody.c_str()));
 	}
-	printf("[written: %lu] [status: %d]\n\n", this->_responseBody.size(), status);
 	close(pipeC2P[0]);
+	int	status = 0;
+	waitpid(pid, &status, WNOHANG);
+	if (WIFEXITED(status))
+		status = WEXITSTATUS(status);
+	if (status != 0)
+		throw std::runtime_error("child process: execution failure");
+	printf("[written: %lu] [status: %d]\n\n", this->_responseBody.size(), status);
 	return (0);
 }
 

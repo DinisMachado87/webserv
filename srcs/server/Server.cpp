@@ -42,7 +42,7 @@ Location::Location(std::string &strBuf, std::vector<StrView> &vecBuf,
 	_uploadPath(strBuf),
 	_returnCode(0),
 	_uploadEnable(false),
-	_allowedMethods(DEFAULT) {}
+	_allowedMethods((1 << GET) | (1 << POST) | (1 << DELETE)) {}
 
 Location &Location::operator=(const Location &other) {
 	if (this == &other) {

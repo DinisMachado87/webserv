@@ -6,11 +6,12 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/30 17:27:38 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 13:53:15 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.hpp"
+#include "ErrorResponse.hpp"
 
 Response::Response(Location* loc, Request* req) : _location(loc), _request(req)
 {
@@ -39,12 +40,25 @@ int	Response::generateHeader(void)
 
 bool	Response::sendResponse(const int &clientFD)
 {
-	setResponseBody();
-	generateHeader();
-	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
-	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 1;
+	try {
+		setResponseBody();
+		generateHeader();
+		ssize_t	ret = 0;
+		ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	}
+	catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		ErrorResponse error(_location, NULL);
+		error.setErrorCode(500);
+		error.sendResponse(clientFD);
+	}
+	return 0;
 }
 
 void	Response::getTime(char* buf, int bufSize)

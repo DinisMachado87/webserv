@@ -58,7 +58,7 @@ Connection *Connection::handleIn() {
 	if (_responses[_back])
 		_back = (_back + 1 % RESPONSES_CUE_SIZE);
 	return NULL;
-};
+}
 
 void Connection::handleOut() {
 	if (!_responses[_cur]) {

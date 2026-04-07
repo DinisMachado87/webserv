@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/03/27 15:02:57 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 14:25:53 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,13 @@ int	ErrorResponse::generateHeader(void)
 
 int	ErrorResponse::setResponseBody(void)
 {
+	std::map<uint, const char*>::const_iterator	match;
+	match = this->_errorTitles.find(_errorCode);
+	if (match == _errorTitles.end())
+	{
+		_errorCode = 500;
+		match = this->_errorTitles.find(_errorCode);
+	}
 	const char* path = this->_location->_overrides.findErrorFile(_errorCode);
 	if (path)
 	{
@@ -65,8 +72,6 @@ int	ErrorResponse::setResponseBody(void)
 		return (0);
 	}
 	std::stringstream	body;
-	std::map<uint, const char*>::const_iterator	match;
-	match = this->_errorTitles.find(_errorCode);
 	const char* errorTitle = match->second;
 	match = this->_errorBodies.find(_errorCode);
 	const char* errorBody = match->second;
@@ -76,6 +81,32 @@ int	ErrorResponse::setResponseBody(void)
 	body << _msg4;
 	_responseBody = body.str();
 	return (0);
+}
+
+void	ErrorResponse::setErrorCode(uint code)
+{
+	_errorCode = code;
+}
+
+bool	ErrorResponse::sendResponse(const int &clientFD)
+{
+	try {
+		setResponseBody();
+		generateHeader();
+		ssize_t	ret = 0;
+		ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
+		if (ret < 0)
+			throw std::runtime_error("sendResponse: send failure");
+		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	}
+	catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		throw std::runtime_error("ErrorResponse: failed to send ErrorResponse");
+	}
+	return 0;
 }
 
 std::map<uint, const char*>	makeTitles(void)
