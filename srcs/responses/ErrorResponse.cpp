@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 16:42:36 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 11:06:07 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,9 @@ int	ErrorResponse::setResponseBody(void)
 		_errorCode = 500;
 		match = _errorTitles.find(_errorCode);
 	}
-	const char* path = _location->_overrides.findErrorFile(_errorCode);
+	const char* path = NULL;
+	if (_location != NULL)
+		path = _location->_overrides.findErrorFile(_errorCode);
 	if (path)
 	{
 		int		fd = open(_request->getFilePath().c_str(), O_RDONLY);
