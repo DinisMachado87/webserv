@@ -46,6 +46,7 @@ Connection::~Connection() {
 
 // Public Methods
 Connection *Connection::handleIn() {
+	LOGSOCK(Logger::LOG, "Connection Handel in ", _fd);
 	char buffer[RECV_SIZE + 1];
 	ssize_t bytesRead = recv(_fd, buffer, RECV_SIZE, 0);
 	if (bytesRead > 0) {
@@ -70,6 +71,7 @@ Connection *Connection::handleIn() {
 }
 
 void Connection::handleOut() {
+	LOGSOCK(Logger::LOG, "Connection Handel out ", _fd);
 	if (!_responses[_cur]) {
 		LOG(Logger::WARNING, "Socket handleOut without a response");
 		return;

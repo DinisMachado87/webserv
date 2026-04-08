@@ -126,7 +126,7 @@ void Engine::logFlagUpdates(ASocket *socket, uint32_t events,
 	if (!newEventsOut && EventsOut)
 		LOGSOCK(Logger::LOG, "Removing EPOLLOUT", socket->getFd());
 	else if (newEventsOut && !EventsOut)
-		LOGSOCK(Logger::LOG, "taking EPOLLOUT", socket->getFd());
+		LOGSOCK(Logger::LOG, "Adding EPOLLOUT", socket->getFd());
 }
 
 void Engine::updateFlags(ASocket *socket) {
