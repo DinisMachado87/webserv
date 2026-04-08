@@ -6,12 +6,13 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 15:22:33 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 11:50:20 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.hpp"
 #include "ErrorResponse.hpp"
+#include "../logger/Logger.hpp"
 
 Response::Response(Location* loc, Request* req) : _location(loc), _request(req)
 {
@@ -51,7 +52,7 @@ bool	Response::sendResponse(const int &clientFD)
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	}
 	catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
@@ -59,7 +60,7 @@ bool	Response::sendResponse(const int &clientFD)
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
 	}
-	return 0;
+	return DONE;
 }
 
 void	Response::getTime(char* buf, int bufSize)

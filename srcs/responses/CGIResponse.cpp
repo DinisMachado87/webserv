@@ -6,12 +6,13 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 16:42:22 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 11:55:59 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CGIResponse.hpp"
 #include "ErrorResponse.hpp"
+#include "../logger/Logger.hpp"
 
 
 
@@ -48,11 +49,12 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 		ssize_t	ret = 0;
 		if (!_headerSent)
 		{
+			LOG(Logger::LOG, "CGIResponse: sendResponse");
 			setResponseBody();
 			generateHeader();
 			ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 			if (ret < 0)
-				throw std::runtime_error("sendResponse: send failure");
+				throw std::runtime_error("CGIResponse: sendResponse: send failure");
 			write(1, _responseHeader.c_str(), _responseHeader.size());
 			_headerSent = 1;
 		}
@@ -64,35 +66,35 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 		{
 			ret = send(clientFD, "0\r\n\r\n", 5, 0);
 			if (ret < 0)
-				throw std::runtime_error("sendResponse: send failure");
-			return 0;
+				throw std::runtime_error("CGIResponse: sendResponse: send failure");
+			return DONE;
 		}
 
 		int	toSend = std::min(chunk, bodySize - totalSent);
 		std::string	hex = toHex(toSend);
 		ret = send(clientFD, hex.c_str(), hex.size(), 0);
 		if (ret < 0)
-			throw std::runtime_error("sendResponse: send failure");
+			throw std::runtime_error("CGIResponse: sendResponse: send failure");
 		write(1, hex.c_str(), hex.size());
 		ret = send(clientFD, _responseBody.c_str() + totalSent, toSend, 0);
 		if (ret < 0)
-			throw std::runtime_error("sendResponse: send failure");
+			throw std::runtime_error("CGIResponse: sendResponse: send failure");
 		write(1, _responseBody.c_str() + totalSent, toSend);
 		ret = send(clientFD, "\r\n", 2, 0);
 		if (ret < 0)
-			throw std::runtime_error("sendResponse: send failure");
+			throw std::runtime_error("CGIResponse: sendResponse: send failure");
 		write(1, "\r\n", 2);
 		totalSent += toSend;
-		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-		return 1;
+		LOG(Logger::LOG, "CGIResponse: sendResponse");
+		return ONGOING;
 	}
 	catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
+		LOG(Logger::ERROR, e.what());
 		ErrorResponse error(_location, NULL);
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
 	}
-	return 0;
+	return DONE;
 }
 
 static int	executeCGI(void)

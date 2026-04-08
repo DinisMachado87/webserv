@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/31 14:25:57 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 16:42:27 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 11:26:14 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,5 +62,5 @@ bool	DeleteResponse::sendResponse(const int &clientFD)
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
 	}
-	return 0;
+	return DONE;
 }

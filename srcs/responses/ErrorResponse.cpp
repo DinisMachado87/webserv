@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/08 11:06:07 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 11:30:51 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,13 +102,13 @@ bool	ErrorResponse::sendResponse(const int &clientFD)
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	}
 	catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
 		throw std::runtime_error("ErrorResponse: failed to send ErrorResponse");
 	}
-	return 0;
+	return DONE;
 }
 
 std::map<uint, const char*>	makeTitles(void)

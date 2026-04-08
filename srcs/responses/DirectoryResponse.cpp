@@ -99,7 +99,7 @@ bool	DirectoryResponse::sendResponse(const int &clientFD)
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	}
 	catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
@@ -107,5 +107,5 @@ bool	DirectoryResponse::sendResponse(const int &clientFD)
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
 	}
-	return 1;
+	return DONE;
 }

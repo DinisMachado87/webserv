@@ -107,5 +107,5 @@ bool	PostResponse::sendResponse(const int &clientFD)
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
 	}
-	return 1;
+	return DONE;
 }
