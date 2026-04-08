@@ -6,11 +6,12 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/08 11:30:51 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 12:38:36 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ErrorResponse.hpp"
+#include "../logger/Logger.hpp"
 
 
 ErrorResponse::ErrorResponse(Location* loc, Request* req) : Response(loc, req)
@@ -102,10 +103,13 @@ bool	ErrorResponse::sendResponse(const int &clientFD)
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		LOG(Logger::LOG, "ErrorResponse: response sent");
+		LOG(Logger::CONTENT, "ErrorResponse: Sent to client:");
+		LOG(Logger::CONTENT, _responseHeader.c_str());
+		LOG(Logger::CONTENT, _responseBody.c_str());
 	}
 	catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
+		LOG(Logger::ERROR, e.what());
 		throw std::runtime_error("ErrorResponse: failed to send ErrorResponse");
 	}
 	return DONE;

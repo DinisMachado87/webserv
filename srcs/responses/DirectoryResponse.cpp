@@ -2,6 +2,7 @@
 
 #include "DirectoryResponse.hpp"
 #include "ErrorResponse.hpp"
+#include "../logger/Logger.hpp"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sstream>
@@ -35,6 +36,7 @@ int	DirectoryResponse::generateHeader(void)
 
 int	DirectoryResponse::setResponseBody(void)
 {
+	LOG(Logger::LOG, "DirectoryResponse: creating index");
 	DIR *dir = opendir(_request->getFilePath().c_str());
 	if (!dir)
 		return -1;
@@ -95,14 +97,17 @@ bool	DirectoryResponse::sendResponse(const int &clientFD)
 		ssize_t	ret = 0;
 		ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 		if (ret < 0)
-			throw std::runtime_error("sendResponse: send failure");
+			throw std::runtime_error("DirectoryResponse: sendResponse: send failure");
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		LOG(Logger::LOG, "DirectoryResponse: response sent");
+		LOG(Logger::CONTENT, "DirectoryResponse: Sent to client:");
+		LOG(Logger::CONTENT, _responseHeader.c_str());
+		LOG(Logger::CONTENT, _responseBody.c_str());
 	}
 	catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
+		LOG(Logger::ERROR, e.what());
 		ErrorResponse error(_location, NULL);
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
