@@ -41,7 +41,7 @@ int ASocket::setNonBlocking(int fd) {
 }
 
 uint32_t ASocket::trackCurEvents(uint32_t events) {
-	_events |= events;
+	_events = events;
 	return _events;
 }
 

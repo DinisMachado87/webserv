@@ -7,7 +7,7 @@ server {
 
 	location / {
 		allowed_methods GET POST;
-		autoindexing off;
+		autoindexing on;
 	}
 
 	location /uploads {

@@ -9,10 +9,8 @@
 #include <cerrno>
 #include <cstring>
 #include <exception>
-#include <iostream>
 #include <map>
 #include <netinet/in.h>
-#include <ostream>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
@@ -20,8 +18,6 @@
 #include <utility>
 #include <vector>
 
-using std::cerr;
-using std::endl;
 using std::exception;
 using std::map;
 using std::runtime_error;
@@ -116,10 +112,28 @@ void Engine::createSockets() {
 	}
 }
 
+void Engine::logFlagUpdates(ASocket *socket, uint32_t events,
+							uint32_t newEvents) {
+	std::stringstream stream;
+	bool newEventsIn = newEvents & EPOLLIN;
+	bool newEventsOut = newEvents & EPOLLOUT;
+	bool EventsIn = events & EPOLLIN;
+	bool EventsOut = events & EPOLLOUT;
+	if (!newEventsIn && EventsIn)
+		LOGSOCK(Logger::LOG, "Removing EPOLLIN", socket->getFd());
+	else if (newEventsIn && !EventsIn)
+		LOGSOCK(Logger::LOG, "Adding EPOLLIN", socket->getFd());
+	if (!newEventsOut && EventsOut)
+		LOGSOCK(Logger::LOG, "Removing EPOLLOUT", socket->getFd());
+	else if (newEventsOut && !EventsOut)
+		LOGSOCK(Logger::LOG, "taking EPOLLOUT", socket->getFd());
+}
+
 void Engine::updateFlags(ASocket *socket) {
 	uint32_t events = socket->getCurEvents();
 	uint32_t newEvents = socket->getEventsNextLoop();
 
+	LOGEVENTS(socket, events, newEvents);
 	if (newEvents != events) {
 		socket->trackCurEvents(newEvents);
 		setEventTo(_fdEpoll, EPOLL_CTL_MOD, newEvents, socket->getFd(), socket);
@@ -133,7 +147,6 @@ void Engine::pollLoop() {
 	while (!g_shutdown) {
 		nFds = -1;
 		nFds = epoll_wait(_fdEpoll, events, MAX_EVENTS, TIMEOUT);
-		std::cout << "Read " << nFds << " fd's" << endl;
 		if (ERR == nFds) {
 			if (errno == EINTR)
 				continue;
@@ -159,8 +172,8 @@ void Engine::pollLoop() {
 				updateFlags(socket);
 
 			} catch (const exception err) {
-				LOG_ERROR(runtime_error(
-					string("Error handeling socket event: ") + err.what()));
+				LOG_ERROR(runtime_error(string("Error handeling socket event: ")
+										+ err.what()));
 				deleteSocket(socket);
 			}
 		}

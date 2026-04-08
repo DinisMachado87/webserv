@@ -6,6 +6,7 @@
 
 class Clock {
 private:
+	enum e_format { TIME, DATE, DATETIME };
 	time_t _unixNow;
 	struct tm *_now;
 	Clock &operator=(const Clock &other);
@@ -17,7 +18,10 @@ public:
 	~Clock();
 
 	// Methods
-	std::string now();
+	std::string getFormatedTime(const int format);
+	std::string nowDateTime();
+	std::string nowDate();
+	std::string nowTime();
 };
 
 #endif
