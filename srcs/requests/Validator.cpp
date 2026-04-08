@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Validator.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/01 13:47:14 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 18:00:32 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sys/stat.h>
+#include <limits.h>
 
 Validator::Validator(const Server& server) :
 	_server(server)
@@ -280,11 +281,21 @@ std::string Validator::buildResolvedPath(const Location* location, const Request
 	if (rootC == NULL || rootC[0] == '\0')
 		return "";
 
+	std::string root(rootC);
+	if (root == "/")
+	{
+		char cwd_buffer[PATH_MAX];
+		if (getcwd(cwd_buffer, sizeof(cwd_buffer)) != NULL)
+		{
+			root = cwd_buffer;
+		}
+	}
+
 	locPathC = location->getPath();
 	if (locPathC == NULL || locPathC[0] == '\0')
 		return "";
 
-	return buildResolvedPathFromUrl(rootC, locPathC, request->getRequestPath());
+	return buildResolvedPathFromUrl(root, locPathC, request->getRequestPath());
 }
 
 std::string Validator::buildResolvedPathFromUrl(const std::string& root, const std::string& locationPath, const std::string& requestPath) const

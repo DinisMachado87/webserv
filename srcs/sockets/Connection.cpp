@@ -12,6 +12,7 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <ostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <sys/epoll.h>
@@ -35,7 +36,13 @@ Connection::Connection(const int fd, const Server &server,
 		_responses[i] = NULL;
 }
 
-Connection::~Connection() {}
+Connection::~Connection() {
+	LOGSOCK(Logger::LOG, "Destroying ", _fd);
+	while (_responses[_cur]) {
+		_responses[_cur] = NULL;
+		_cur = (_cur + 1) % RESPONSES_CUE_SIZE;
+	}
+}
 
 // Public Methods
 Connection *Connection::handleIn() {
@@ -55,8 +62,10 @@ Connection *Connection::handleIn() {
 	Request *request = _http.parse(buffer, bytesRead);
 	if (request)
 		_responses[_back] = _validator.handleRequest(request);
-	if (_responses[_back])
-		_back = (_back + 1 % RESPONSES_CUE_SIZE);
+	if (_responses[_back]) {
+		LOGSOCKNUM(Logger::LOG, "Storing _response on slot ", _back, _fd);
+		_back = ((_back + 1) % RESPONSES_CUE_SIZE);
+	}
 	return NULL;
 }
 
@@ -66,7 +75,10 @@ void Connection::handleOut() {
 		return;
 	}
 
+	LOGSOCKNUM(Logger::LOG, "Sending response on slot: ", _cur, _fd);
 	if (DONE == _responses[_cur]->sendResponse(_fd)) {
+		LOGSOCKNUM(Logger::LOG, "DONE: Deleting response on slot: ", _cur, _fd);
+
 		delete _responses[_cur];
 		_responses[_cur] = NULL;
 		_cur = (_cur + 1) % RESPONSES_CUE_SIZE;

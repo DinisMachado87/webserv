@@ -2,6 +2,7 @@
 #define ENGINE_HPP
 
 #include "ASocket.hpp"
+#include "webServ.hpp"
 #include <map>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -20,6 +21,7 @@ protected:
 	std::vector<Server *> _servers;
 	std::map<int, ASocket *> _sockets;
 	// Methods
+	void logFlagUpdates(ASocket *socket, uint32_t events, uint32_t newEvents);
 	std::runtime_error handleError(const std::string errMsg, const int err);
 	void deleteSocket(ASocket *socket);
 	void updateFlags(ASocket *socket);
@@ -39,5 +41,12 @@ public:
 	// Methods
 	void run(std::string &config);
 };
+
+#ifdef LOGGING
+#define LOGEVENTS(socket, events, newEvents)                                   \
+	Engine::logFlagUpdates(socket, events, newEvents)
+#else
+#define LOGEVENTS(socket, events, newEvents) (void)0
+#endif
 
 #endif

@@ -15,7 +15,6 @@
 #include <string>
 
 using std::cerr;
-using std::flush;
 
 #define COLOR_DEBUG "\033[36m" // Cyan
 #define COLOR_INFO "\033[32m"  // Green
@@ -23,7 +22,7 @@ using std::flush;
 #define COLOR_ERROR "\033[31m" // Red
 #define COLOR_PURPLE "\033[35m"
 #define COLOR_RESET "\033[0m"
-#define SEPARATOR "\t|"
+#define SEPARATOR " | "
 
 using std::cout;
 using std::endl;
@@ -33,7 +32,7 @@ using std::stringstream;
 
 Logger *Logger::_loggerPtr = NULL;
 const char *Logger::_labels[]
-	= {"[NONE]", "[ERROR]", "[WARNING]", "[DEBUG]", "[LOG]"};
+	= {"[NONE]", "[ERROR]", "[WARNING]", "[DEBUG]", "[LOG]", "[CONTENT]"};
 // Public constructors and destructors
 Logger::Logger() :
 	_level(LOGLEVEL) {}
@@ -80,13 +79,11 @@ void Logger::color(const int level, stringstream &stream) {
 	case WARNING:
 		stream << COLOR_WARN;
 		break;
+	case LOG:
+		stream << COLOR_INFO;
 	default:
 		return;
 	}
-}
-
-void Logger::info(const int level, const char *msg, stringstream &stream) {
-	stream << _labels[level] << " " << msg;
 }
 
 void Logger::addHost(stringstream &stream, in_addr_t host) {
@@ -99,22 +96,25 @@ void Logger::addHost(stringstream &stream, in_addr_t host) {
 void Logger::logError(runtime_error errorMsg) {
 	if (ERROR > _level)
 		return;
-	log(ERROR, errorMsg.what(), 0, INT_MAX);
+	log(ERROR, errorMsg.what(), NONUM, 0, INT_MAX);
 }
 
-void Logger::log(const int level, const char *msg, const int socket,
-				 in_addr_t host) {
+void Logger::log(const int level, const char *msg, const int num,
+				 const int socket, in_addr_t host) {
 	if (level > _level)
 		return;
 
 	stringstream stream;
 	color(level, stream);
-	stream << _clock.now() << " | ";
-	info(level, msg, stream);
+	stream << _clock.nowTime() << SEPARATOR;
+	stream << _labels[level];
 	if (socket)
 		stream << " | Socket: " << socket;
 	if (host != INT_MAX)
 		addHost(stream, host);
+	stream << SEPARATOR << msg;
+	if (num != -2)
+		stream << num;
 	print(level, stream);
 }
 

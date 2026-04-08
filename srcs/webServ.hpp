@@ -20,6 +20,7 @@
 #define LOGGING true
 #define LOGTOCLI true
 #define LOGTOFILE true
+#define NONUM -2
 
 // HTTP Parser Limits
 #define MAX_HEADER_SIZE 8192
