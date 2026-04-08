@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:36 by akosloff          #+#    #+#             */
-/*   Updated: 2026/03/30 14:21:57 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 11:39:23 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,6 +94,8 @@ public:
 	// helpers
 	bool hasHeader(const std::string& name) const;
 	std::string getHeaderValue(const std::string& name) const;
+	void printRequest() const;
+	static std::string sizeToString(size_t value);
 
 private:
 	Request(const Request& other);

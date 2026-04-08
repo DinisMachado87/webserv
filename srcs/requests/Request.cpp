@@ -1,4 +1,8 @@
 #include "Request.hpp"
+#include "Logger.hpp"
+#include <ostream>
+#include <sstream>
+#include <cstdio>
 
 Request::Request() :
 	_method(),
@@ -306,4 +310,56 @@ bool Request::isPost() const
 bool Request::isDelete() const
 {
 	return _type == REQ_DELETE;
+}
+
+/*use reserve to allocate a specific amount of memory for request print function
+so we avoid reallocations, then I need to check what happens if we pass this amount*/
+void Request::printRequest() const
+{
+	std::string output;
+	output.reserve(700); // Adjust the size as needed
+
+	output += "\nMethod: " + _method + "\n";
+	output += "Request Target: " + _requestTarget + "\n";
+	output += "Request Path: " + _requestPath + "\n";
+	output += "Query String: " + _queryString + "\n";
+	output += "Request Version: " + _requestVersion + "\n";
+	output += "Host: " + _host + "\n";
+	output += "Content-Type: " + _contentType + "\n";
+	output += "Content-Length: " + sizeToString(_contentLength) + "\n";
+	output += "Has Content-Length: " + std::string(_hasContentLength ? "true" : "false") + "\n";
+	output += "Transfer-Encoding: " + _transferEncoding + "\n";
+	output += "Chunk Size: " + sizeToString(_chunkSize) + "\n";
+	output += "File Path: " + _filePath + "\n";
+	output += "Script Name: " + _scriptName + "\n";
+	output += "Path Info: " + _pathInfo + "\n";
+	output += "Body: " + _body + "\n";
+	output += "Remote Addr: " + _remoteAddr + "\n";
+	output += "Remote Host: " + _remoteHost + "\n";
+
+	if (!_headers.empty())
+	{
+		output += "Headers:\n";
+		for (size_t i = 0; i < _headers.size(); ++i)
+		{
+			const HeaderField& header = _headers[i];
+			output += header.name + ": " + header.value;
+			if (i < _headers.size() - 1)
+				output += ", ";
+			else
+				output += "\n";
+		}
+	}
+
+	LOG(Logger::LOG, output.c_str());
+}
+
+
+
+
+std::string Request::sizeToString(size_t value)
+{
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "%lu", static_cast<unsigned long>(value));
+    return std::string(buffer);
 }
