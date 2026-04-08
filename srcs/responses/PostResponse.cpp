@@ -11,6 +11,8 @@
 /* ************************************************************************** */
 
 #include "PostResponse.hpp"
+#include "ErrorResponse.hpp"
+#include <sys/stat.h>
 
 
 
@@ -38,22 +40,72 @@ int	PostResponse::generateHeader(void)
 	return 0;
 }
 
+static bool	isDir(const char* path)
+{
+	struct stat info;
+	if (stat(path, &info) != 0)
+		return false;
+	return S_ISDIR(info.st_mode);
+}
+
+static std::string	createGenericName(void)
+{
+	char	name[14];
+	char	c;
+	int		pos;
+
+	c = '0';
+	pos = 7;
+	std::memcpy(name, "upload\0\0\0\0\0\0\0", 14);
+	while (access(name, F_OK) == 0)
+	{
+		c++;
+		name[pos] = c;
+		if (c == '}')
+		{
+			pos++;
+			if (pos == 14)
+				break ;
+			c = '0';
+		}
+	}
+	return (std::string(name));
+}
+
 int	PostResponse::actionPost(void)
 {
-	const std::string& name = this->_request->getFilePath();
-	if (isdir(name))
-		name = createGenericName();
-	std::ofstream oss(name);
+	std::string	nameStr;
+	const char* name;
+	if (isDir(name))
+	{
+		nameStr = createGenericName();
+		name = nameStr.c_str();
+	}
+	else
+		name = _request->getFilePath().c_str();
+	std::ofstream oss;
+	oss.open(name);
+	if (!oss)
+		throw std::runtime_error("PostResponse: failed to create filestream");
 	oss << _request->getBody();
+	oss.close();
 	return (0);
 }
 
 bool	PostResponse::sendResponse(const int &clientFD)
 {
-	actionPost();
-	generateHeader();
-	send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
-	send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-	std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
-	return 1;
+	try {
+		actionPost();
+		generateHeader();
+		send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
+		send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
+		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+	}
+	catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		ErrorResponse error(_location, NULL);
+		error.setErrorCode(500);
+		error.sendResponse(clientFD);
+	}
+	return DONE;
 }

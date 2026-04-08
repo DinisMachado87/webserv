@@ -35,7 +35,7 @@ int	DirectoryResponse::generateHeader(void)
 
 int	DirectoryResponse::setResponseBody(void)
 {
-	DIR *dir = opendir(this->_request->getFilePath().c_str());
+	DIR *dir = opendir(_request->getFilePath().c_str());
 	if (!dir)
 		return -1;
 
@@ -43,10 +43,10 @@ int	DirectoryResponse::setResponseBody(void)
 	body << "<!DOCTYPE html>\r\n";
 	body << "<html>\r\n";
 	body << "<head>\r\n";
-	body << "<title>Index of " << this->_request->getFilePath() << "</title>\r\n";
+	body << "<title>Index of " << _request->getFilePath() << "</title>\r\n";
 	body << "</head>\r\n";
 	body << "<body>\r\n";
-	body << "<h1>Index of " << this->_request->getFilePath() << "</h1>\r\n";
+	body << "<h1>Index of " << _request->getFilePath() << "</h1>\r\n";
 	body << "<ul>\r\n";
 
 	struct dirent *entry;
@@ -58,7 +58,7 @@ int	DirectoryResponse::setResponseBody(void)
 		if (name == ".")
 			continue;
 
-		std::string fullPath = this->_request->getFilePath();
+		std::string fullPath = _request->getFilePath();
 		if (fullPath[fullPath.length() - 1] != '/')
 			fullPath += "/";
 		fullPath += name;
@@ -99,7 +99,7 @@ bool	DirectoryResponse::sendResponse(const int &clientFD)
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	}
 	catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
@@ -107,5 +107,5 @@ bool	DirectoryResponse::sendResponse(const int &clientFD)
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
 	}
-	return 1;
+	return DONE;
 }

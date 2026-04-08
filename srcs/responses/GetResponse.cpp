@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 13:51:20 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/07 16:42:39 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,27 +40,27 @@ int	GetResponse::generateHeader(void)
 int	GetResponse::setResponseBody(void)
 {
 	ssize_t	res = 1;
-	int		fd = open(this->_request->getFilePath().c_str(), O_RDONLY);
+	int		fd = open(_request->getFilePath().c_str(), O_RDONLY);
 	if (res < 0)
 			throw std::runtime_error("setResponseBody: open failure");
 	res = 1;
 	ssize_t	chunk = 8192;
 	ssize_t	size;
 	ssize_t	oldSize = 0;
-	this->_responseBody.resize(chunk);
+	_responseBody.resize(chunk);
 	while (res > 0)
 	{
-		size = this->_responseBody.size();
-		res = read(fd, &this->_responseBody[size - chunk], chunk);
+		size = _responseBody.size();
+		res = read(fd, &_responseBody[size - chunk], chunk);
 		if (res == -1)
 			throw std::runtime_error("setResponseBody: read failure");
 		if (res < chunk)
 			break ;
 		oldSize = size;
-		this->_responseBody.resize(size + chunk);
+		_responseBody.resize(size + chunk);
 	}
 	if (res != -1)
-		this->_responseBody.resize(oldSize + res);
+		_responseBody.resize(oldSize + res);
 	return (0);
 }
 

@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 14:25:53 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 11:30:51 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 ErrorResponse::ErrorResponse(Location* loc, Request* req) : Response(loc, req)
 {
-	_errorCode = this->_request->getParseErrorCode();
+	_errorCode = _request->getParseErrorCode();
 }
 ErrorResponse::~ErrorResponse(void)
 {
@@ -43,37 +43,39 @@ int	ErrorResponse::generateHeader(void)
 int	ErrorResponse::setResponseBody(void)
 {
 	std::map<uint, const char*>::const_iterator	match;
-	match = this->_errorTitles.find(_errorCode);
+	match = _errorTitles.find(_errorCode);
 	if (match == _errorTitles.end())
 	{
 		_errorCode = 500;
-		match = this->_errorTitles.find(_errorCode);
+		match = _errorTitles.find(_errorCode);
 	}
-	const char* path = this->_location->_overrides.findErrorFile(_errorCode);
+	const char* path = NULL;
+	if (_location != NULL)
+		path = _location->_overrides.findErrorFile(_errorCode);
 	if (path)
 	{
-		int		fd = open(this->_request->getFilePath().c_str(), O_RDONLY);
+		int		fd = open(_request->getFilePath().c_str(), O_RDONLY);
 		ssize_t	res = 1;
 		ssize_t	chunk = 8192;
 		ssize_t	size;
 		ssize_t	oldSize = 0;
-		this->_responseBody.resize(chunk);
+		_responseBody.resize(chunk);
 		while (res > 0)
 		{
-			size = this->_responseBody.size();
-			res = read(fd, &this->_responseBody[size - chunk], chunk);
+			size = _responseBody.size();
+			res = read(fd, &_responseBody[size - chunk], chunk);
 			if (res < chunk)
 				break ;
 			oldSize = size;
-			this->_responseBody.resize(size + chunk);
+			_responseBody.resize(size + chunk);
 		}
 		if (res != -1)
-			this->_responseBody.resize(oldSize + res);
+			_responseBody.resize(oldSize + res);
 		return (0);
 	}
 	std::stringstream	body;
 	const char* errorTitle = match->second;
-	match = this->_errorBodies.find(_errorCode);
+	match = _errorBodies.find(_errorCode);
 	const char* errorBody = match->second;
 	body << _msg1 << _errorCode << " " << errorTitle;
 	body << _msg2 << _errorCode << " " << errorTitle;
@@ -100,13 +102,13 @@ bool	ErrorResponse::sendResponse(const int &clientFD)
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
 	}
 	catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
 		throw std::runtime_error("ErrorResponse: failed to send ErrorResponse");
 	}
-	return 0;
+	return DONE;
 }
 
 std::map<uint, const char*>	makeTitles(void)
