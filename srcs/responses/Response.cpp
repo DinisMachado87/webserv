@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/08 11:50:20 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 12:45:48 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,14 +48,17 @@ bool	Response::sendResponse(const int &clientFD)
 		ssize_t	ret = 0;
 		ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 		if (ret < 0)
-			throw std::runtime_error("sendResponse: send failure");
+			throw std::runtime_error("Response: sendResponse: send failure");
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
-			throw std::runtime_error("sendResponse: send failure");
-		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+			throw std::runtime_error("Response: sendResponse: send failure");
+		LOG(Logger::LOG, "Response: response sent");
+		LOG(Logger::CONTENT, "Response: Sent to client:");
+		LOG(Logger::CONTENT, _responseHeader.c_str());
+		LOG(Logger::CONTENT, _responseBody.c_str());
 	}
 	catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
+		LOG(Logger::ERROR, e.what());
 		ErrorResponse error(_location, NULL);
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);

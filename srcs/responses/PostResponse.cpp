@@ -12,6 +12,7 @@
 
 #include "PostResponse.hpp"
 #include "ErrorResponse.hpp"
+#include "../logger/Logger.hpp"
 #include <sys/stat.h>
 
 
@@ -89,6 +90,7 @@ int	PostResponse::actionPost(void)
 		throw std::runtime_error("PostResponse: failed to create filestream");
 	oss << _request->getBody();
 	oss.close();
+	LOG(Logger::LOG, "PostResponse: file uploaded");
 	return (0);
 }
 
@@ -99,10 +101,13 @@ bool	PostResponse::sendResponse(const int &clientFD)
 		generateHeader();
 		send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 		send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
-		std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		LOG(Logger::LOG, "PostResponse: response sent");
+		LOG(Logger::CONTENT, "PostResponse: Sent to client:");
+		LOG(Logger::CONTENT, _responseHeader.c_str());
+		LOG(Logger::CONTENT, _responseBody.c_str());
 	}
 	catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
+		LOG(Logger::ERROR, e.what());
 		ErrorResponse error(_location, NULL);
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);

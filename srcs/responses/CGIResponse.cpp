@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/08 11:55:59 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 12:27:34 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 		ssize_t	ret = 0;
 		if (!_headerSent)
 		{
-			LOG(Logger::LOG, "CGIResponse: sendResponse");
+			LOG(Logger::LOG, "CGIResponse: sending response");
 			setResponseBody();
 			generateHeader();
 			ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
@@ -65,6 +65,7 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 		if (totalSent >= bodySize)
 		{
 			ret = send(clientFD, "0\r\n\r\n", 5, 0);
+			LOG(Logger::LOG, "CGIResponse: response sent");
 			if (ret < 0)
 				throw std::runtime_error("CGIResponse: sendResponse: send failure");
 			return DONE;
@@ -85,7 +86,9 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 			throw std::runtime_error("CGIResponse: sendResponse: send failure");
 		write(1, "\r\n", 2);
 		totalSent += toSend;
-		LOG(Logger::LOG, "CGIResponse: sendResponse");
+		LOG(Logger::CONTENT, "CGIResponse: Sent to client:");
+		LOG(Logger::CONTENT, _responseHeader.c_str());
+		LOG(Logger::CONTENT, _responseBody.c_str());
 		return ONGOING;
 	}
 	catch (std::exception &e) {
@@ -130,11 +133,12 @@ int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 	close(pipeP2C[1]);
 	if (dup2(pipeC2P[1], STDOUT_FILENO) < 0 || dup2(pipeP2C[0], STDIN_FILENO) < 0)
 	{
-		perror("dup2");
+		LOG(Logger::ERROR, "CGIResponse: child execution dup2 error");
 		exit(1);
 	}
 	close(pipeC2P[1]);
 	close(pipeP2C[0]);
+	LOG(Logger::LOG, "CGIResponse: child process executing");
 	switch (_CGIFileType) {
 		case CGI:
 			executeCGI();
@@ -145,7 +149,7 @@ int	CGIResponse::childProcess(const int (&pipeP2C)[2], const int (&pipeC2P)[2])
 		case PHP:
 			executePHP();
 	}
-	perror("child execution");
+	LOG(Logger::ERROR, "CGIResponse: child execution error");
 	exit (1);
 }
 
