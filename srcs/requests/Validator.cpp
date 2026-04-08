@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/08 12:24:14 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/08 12:53:28 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,7 +100,10 @@ Response* Validator::handleGet(Request* request, const Location* location)
 	if (isDirectory)
 	{
 		if (location->_overrides.isAutoindexed())
+		{
+			request->printRequest();
 			return new DirectoryResponse(const_cast<Location*>(location), request);
+		}
 		else
 			return makeErrorResponse(request, location, 403, "Forbidden");
 	}
@@ -234,12 +237,12 @@ const Location* Validator::matchLocation(const Request* request) const
 	}
 	if (best != NULL)
 	{
-		std::string temp = "Matched location: ";
+		std::string temp = "Validator: Matched location: ";
 		temp += best->getPath();
 		LOG(Logger::CONTENT, temp.c_str());
 	}
 	else
-		LOG(Logger::CONTENT, "No matched location\n");
+		LOG(Logger::CONTENT, "Validator: No matched location\n");
 	return best;
 }
 

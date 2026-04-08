@@ -319,6 +319,7 @@ void Request::printRequest() const
 	std::string output;
 	output.reserve(700); // Adjust the size as needed
 
+	output = "Request:\n";
 	output += "\nMethod: " + _method + "\n";
 	output += "Request Target: " + _requestTarget + "\n";
 	output += "Request Path: " + _requestPath + "\n";
@@ -351,7 +352,7 @@ void Request::printRequest() const
 		}
 	}
 
-	LOG(Logger::LOG, output.c_str());
+	LOG(Logger::CONTENT, output.c_str());
 }
 
 
