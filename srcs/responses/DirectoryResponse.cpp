@@ -45,10 +45,10 @@ int	DirectoryResponse::setResponseBody(void)
 	body << "<!DOCTYPE html>\r\n";
 	body << "<html>\r\n";
 	body << "<head>\r\n";
-	body << "<title>Index of " << _request->getFilePath() << "</title>\r\n";
+	body << "<title>Index of " << getLastFolderName(_request->getFilePath()) << "</title>\r\n";
 	body << "</head>\r\n";
 	body << "<body>\r\n";
-	body << "<h1>Index of " << _request->getFilePath() << "</h1>\r\n";
+	body << "<h1>Index of " << getLastFolderName(_request->getFilePath()) << "</h1>\r\n";
 	body << "<ul>\r\n";
 
 	struct dirent *entry;
@@ -113,4 +113,20 @@ bool	DirectoryResponse::sendResponse(const int &clientFD)
 		error.sendResponse(clientFD);
 	}
 	return DONE;
+}
+
+std::string DirectoryResponse::getLastFolderName(const std::string& path)
+{
+    if (path.empty())
+        return "/";
+
+    size_t end = path.find_last_not_of('/');
+    if (end == std::string::npos)
+        return "/";
+
+    size_t start = path.find_last_of('/', end);
+    if (start == std::string::npos)
+        return path.substr(0, end + 1);
+
+    return path.substr(start + 1, end - start);
 }

@@ -16,6 +16,7 @@ public:
 	private:
 	int	generateHeader(void);
 	int	setResponseBody(void);
+	static std::string getLastFolderName(const std::string& path);
 
 
 	DirectoryResponse(const DirectoryResponse &other);
