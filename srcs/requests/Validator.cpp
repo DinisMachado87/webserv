@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/07 18:00:32 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/08 11:43:41 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,13 +36,13 @@ Validator::~Validator()
 Response* Validator::handleRequest(Request* request)
 {
 	const Location* location = NULL;
-
-	if (request->hasParseError())
-		return makeErrorResponse(request, location, request->getParseErrorCode(), request->getParseErrorMessage());
-
 	location = matchLocation(request);
 	if (location == NULL)
 		return makeErrorResponse(request, location, 404, "No matching location");
+	
+	if (request->hasParseError())
+		return makeErrorResponse(request, location, request->getParseErrorCode(), request->getParseErrorMessage());
+
 
 	if (!isMethodAllowed(location, request))
 		return makeMethodNotAllowedResponse(request, location);
@@ -103,8 +103,7 @@ Response* Validator::handleGet(Request* request, const Location* location)
 		else
 			return makeErrorResponse(request, location, 403, "Forbidden");
 	}
-
-	return new GetResponse(const_cast<Location*>(location), request);
+ 	return new GetResponse(const_cast<Location*>(location), request);
 }
 
 Response* Validator::handlePost(Request* request, const Location* location)
