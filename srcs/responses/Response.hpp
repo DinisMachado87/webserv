@@ -27,6 +27,8 @@ class	Response
 public:
 	Response(Location* loc, Request* req);
 	virtual 		~Response(void);
+	virtual bool	readBodyFirst(char buffer[], ssize_t bytesRead);
+	virtual bool	readBodyLoop(char buffer[], ssize_t bytesRead);
 	virtual bool	sendResponse(const int &clientFD);
 
 
