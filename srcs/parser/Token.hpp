@@ -53,6 +53,7 @@ public:
 	static const uchar *configDelimiters();
 
 	// Methods
+	void printBuffers(std::stringstream &stream);
 	void resetSpanConsolidationIndex();
 	void consolidateBuffers(std::vector<StrView> &vecBuf,
 							std::string &newStrBuf);

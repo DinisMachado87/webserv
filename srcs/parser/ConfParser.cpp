@@ -110,12 +110,12 @@ void ConfParser::parseLocationParam() {
 	else if (_token.compare("upload_path"))
 		_expect.path(&_newLocation._uploadPath);
 	else if (_token.compare("cgi_extension")) {
-		_newLocation._cgiExtensions =
-			_expect.wordVec(_newServer->_strvVecBuf, _vecCursor);
+		_newLocation._cgiExtensions
+			= _expect.wordVec(_newServer->_strvVecBuf, _vecCursor);
 		return;
 	} else if (_token.compare("cgi_path")) {
-		_newLocation._cgiPath =
-			_expect.wordVec(_newServer->_strvVecBuf, _vecCursor);
+		_newLocation._cgiPath
+			= _expect.wordVec(_newServer->_strvVecBuf, _vecCursor);
 		return;
 	} else if (parseOverrides(_newLocation._overrides))
 		return;
@@ -134,9 +134,9 @@ void ConfParser::parseLocation() {
 		case Token::CLOSEBLOCK:
 			_token.consolidateBuffer(_newServer->_strBuf);
 			_newServer->_locations.push_back(_newLocation);
-			_newLocation =
-				Location(_newServer->_strBuf, _newServer->_strvVecBuf,
-						 &_newServer->_defaults);
+			_newLocation
+				= Location(_newServer->_strBuf, _newServer->_strvVecBuf,
+						   &_newServer->_defaults);
 			return;
 		case Token::WORD:
 			parseLocationParam();
@@ -185,6 +185,7 @@ void ConfParser::nextServer() {
 									  _newServer->_strBuf);
 			_servers.push_back(_newServer);
 			_newServer = new Server();
+			_vecCursor = 0;
 			_token.resetSpanConsolidationIndex();
 			return;
 		default:

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unistd.h>
 
@@ -81,6 +82,9 @@ void StrView::setStartAndLen(const char *start, uint len) {
 // Public Methods
 void StrView::updateOffset(uint increase) { _offset += increase; }
 void StrView::printStrV() const { write(1, getStart(), _len); }
+void StrView::streamBuffer(std::stringstream &stream) const {
+	stream << _rawBuffer << "\n";
+}
 bool StrView::compare(StrView &strV) const { return compare(strV.getStart()); }
 void StrView::nullTerminate() { _rawBuffer[_offset + _len - 1] = '\0'; }
 void StrView::trimEnd(const size_t trimSize) {
@@ -109,4 +113,8 @@ void StrView::move(std::string &toBuffer) {
 	toBuffer.push_back('\0');
 	_rawBuffer = &toBuffer;
 	_offset = offset;
+}
+
+void StrView::streamStrView(std::stringstream &stream) {
+	stream << getStr() << &_rawBuffer << _len << _offset;
 }

@@ -16,7 +16,10 @@
 #include <unistd.h>
 #include <vector>
 
+using std::cout;
+using std::endl;
 using std::string;
+using std::stringstream;
 using std::strtol;
 using std::vector;
 
@@ -112,8 +115,8 @@ uchar Token::loadNextCore(const bool keepSpaces) {
 		case WORD: // Extract Token
 			_strV.setStart(str);
 			if (keepSpaces)
-				while (WORD == _isDelimiter[(uchar)(*str)] ||
-					   SPACE == _isDelimiter[(uchar)(*str)])
+				while (WORD == _isDelimiter[(uchar)(*str)]
+					   || SPACE == _isDelimiter[(uchar)(*str)])
 					str++;
 			else
 				while (WORD == _isDelimiter[(uchar)(*str)])
@@ -261,8 +264,14 @@ void Token::trackInUseToken(StrView *strV) {
 	_strBuffSize += strV->getLen() + 1;
 }
 
+void Token::printBuffers(stringstream &stream) {
+	stream << "_tokensInUse: ";
+	for (size_t i = 0; i < _tokensInUse.size(); i++)
+		stream << _tokensInUse[i]->getStr() << "\n";
+}
+
 void Token::consolidateStrVSpans(vector<StrView> &vecBuf, string &newStrBuf) {
-	std::cout << "Consolidating StrView Span Buffer: " << std::endl;
+	cout << "Consolidating StrView Span Buffer: " << endl;
 
 	size_t i = _vecBuffConsolidationIndex;
 	for (; i < vecBuf.size(); i++)
@@ -271,9 +280,15 @@ void Token::consolidateStrVSpans(vector<StrView> &vecBuf, string &newStrBuf) {
 }
 
 void Token::consolidateBuffer(string &newBuf) {
-	std::cout << "Consolidating StrView Buffer: " << std::endl;
+	cout << "Consolidating StrView Buffer: " << endl;
 
 	for (uint i = 0; i < _tokensInUse.size(); i++) {
+
+		cout << "NewBuffer: " << &newBuf << newBuf << endl;
+		stringstream stream;
+		printBuffers(stream);
+		cout << stream;
+
 		_tokensInUse[i]->printStrV();
 		_tokensInUse[i]->move(newBuf);
 	}

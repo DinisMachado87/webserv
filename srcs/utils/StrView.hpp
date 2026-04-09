@@ -34,6 +34,8 @@ public:
 	void setLen(uint len);
 	void setStartAndLen(const char *start, uint len);
 	// Methods
+	void streamBuffer(std::stringstream &stream) const;
+	void streamStrView(std::stringstream &stream);
 	bool ncompare(const char *str, size_t len) const;
 	size_t getBufferSize() const;
 	void nullTerminate();

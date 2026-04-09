@@ -16,7 +16,6 @@ server {
 		autoindexing on;
 	}
 
-	error_page 404 /404.html;
 }
 
 server {
@@ -44,6 +43,7 @@ server {
 		upload_enable on;
 		upload_path /var/uploads;
 		cgi_extension .php .py;
-		cgi_path /usr/bin/php-cgi;
+		cgi_path /usr/bin/php-cgi /usr/bin/py;
 	}
+	error_page 404 /404.html;
 }
