@@ -1,6 +1,6 @@
 server {
     listen 8080;
-    root /home/akosloff/Projects/webserv/webserv;
+    root /;
     index index.html;
 
     location / 
@@ -9,9 +9,9 @@ server {
 		autoindexing on;
 	}
 
-    # temporary workaround for parser
     location /.bla {
         allowed_methods POST;
+        cgi_extension .bla;
         cgi_path /home/akosloff/Projects/webserv/webserv/cgi_tester;
     }
 

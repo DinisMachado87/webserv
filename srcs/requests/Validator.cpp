@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/09 15:34:14 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/09 17:44:05 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,9 +46,12 @@ Response* Validator::handleRequest(Request* request)
 	if (request->hasParseError())
 		return makeErrorResponse(request, location, request->getParseErrorCode(), request->getParseErrorMessage());
 
-
 	if (!isMethodAllowed(location, request))
-		return makeMethodNotAllowedResponse(request, location);
+	{
+	    std::cout << "METHOD NOT ALLOWED!" << std::endl;
+	    return makeMethodNotAllowedResponse(request, location);
+	}
+	std::cout << "METHOD ALLOWED, proceeding..." << std::endl;
 
 	if (!validateRequest(request, location))
 		return makeErrorResponse(request, location, 400, "Bad Request");
@@ -213,8 +216,15 @@ const Location* Validator::matchLocation(const Request* request) const
 	size_t				i;
 	size_t				bestLen;
 	const Location*		best;
-	const std::string&	path = request->getRequestPath();
+	std::string	path = request->getRequestPath();
 
+    // Normalize path: remove duplicate slashes
+    while (path.find("//") != std::string::npos)
+    {
+        size_t pos = path.find("//");
+        path.erase(pos, 1);
+    }
+	
 	bestLen = 0;
 	best = NULL;
 	i = 0;
@@ -265,7 +275,7 @@ const Location* Validator::matchLocation(const Request* request) const
 	return best;
 }
 
-bool Validator::isMethodAllowed(const Location* location, const Request* request) const
+/* bool Validator::isMethodAllowed(const Location* location, const Request* request) const
 {
 	if (location == NULL)
 		return false;
@@ -276,7 +286,33 @@ bool Validator::isMethodAllowed(const Location* location, const Request* request
 	if (request->getType() == REQ_DELETE)
 		return (location->isAllowedMethod(Location::DELETE) != 0);
 	return false;
+} */
+
+
+// ...existing code...
+bool Validator::isMethodAllowed(const Location* location, const Request* request) const
+{
+    if (location == NULL)
+        return false;
+    if (request->getType() == REQ_GET)
+    {
+        std::cout << "GET allowed: " << location->isAllowedMethod(Location::GET) << std::endl;
+        return (location->isAllowedMethod(Location::GET) != 0);
+    }
+    if (request->getType() == REQ_POST)
+    {
+        std::cout << "POST allowed: " << location->isAllowedMethod(Location::POST) << std::endl;
+        return (location->isAllowedMethod(Location::POST) != 0);
+    }
+    if (request->getType() == REQ_DELETE)
+    {
+        std::cout << "DELETE allowed: " << location->isAllowedMethod(Location::DELETE) << std::endl;
+        return (location->isAllowedMethod(Location::DELETE) != 0);
+    }
+    return false;
 }
+// ...existing code...
+
 
 bool Validator::validateRequest(const Request* request, const Location* location) const
 {
