@@ -41,7 +41,7 @@ void Overrides::printOverrides(const char *label, stringstream &stream) const {
 	stream << "  Autoindex: " << (isAutoindexed() ? "true" : "false") << '\n';
 	stream << "  Client Max Body: " << getClientMaxBody() << '\n';
 
-	stream << "  Index files: ";
+	stream << "  Index files (LEN:" << _index.len() << "): ";
 	for (size_t i = 0; i < _index.len(); i++)
 		stream << safeStr(_index[i].getStart()) << ", ";
 	stream << "\n";
@@ -49,6 +49,8 @@ void Overrides::printOverrides(const char *label, stringstream &stream) const {
 	stream << '\n' << "  Error pages: ";
 	map<uint, StrView>::const_iterator curError = _error.begin();
 	map<uint, StrView>::const_iterator end = _error.end();
+	if (curError == end)
+		stream << "NONE\n";
 	for (; curError != end; curError++)
 		stream << curError->first << ": "
 			   << safeStr(curError->second.getStart()) << '\n';

@@ -41,7 +41,7 @@ Listening::~Listening() {}
 // Public Methods
 Listening *Listening::create(const Server &server, const Listen &listenSock) {
 	LOG_TITLE("CREATING SOCKET");
-	LOG_SERVER("Starting Server:\n", server);
+	LOG_SERVER("", server);
 
 	struct sockaddr_in addr
 		= {AF_INET, htons(listenSock.getPort()), {listenSock.getHost()}, {0}};

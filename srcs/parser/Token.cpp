@@ -1,4 +1,5 @@
 #include "Token.hpp"
+#include "Logger.hpp"
 #include "Server.hpp"
 #include "StrView.hpp"
 #include "webServ.hpp"
@@ -30,7 +31,8 @@ Token::Token(const uchar *table, std::string &parsingString) :
 	_type(0),
 	_lineN(0),
 	_pendingQuote(false),
-	_strBuffSize(0) {}
+	_strBuffSize(0),
+	_vecBuffConsolidationIndex(0) {}
 
 Token::~Token() {}
 
@@ -271,27 +273,20 @@ void Token::printBuffers(stringstream &stream) {
 }
 
 void Token::consolidateStrVSpans(vector<StrView> &vecBuf, string &newStrBuf) {
-	cout << "Consolidating StrView Span Buffer: " << endl;
+	LOG(Logger::LOG, "Consolidating Span Buffer: ");
 
 	size_t i = _vecBuffConsolidationIndex;
+	LOGNUM(Logger::LOG, "_vecBuffConsolidation index: ", i);
 	for (; i < vecBuf.size(); i++)
 		vecBuf[i].move(newStrBuf);
 	_vecBuffConsolidationIndex = vecBuf.size();
 }
 
 void Token::consolidateBuffer(string &newBuf) {
-	cout << "Consolidating StrView Buffer: " << endl;
+	LOG(Logger::LOG, "Consolidating StrBuffer: ");
 
-	for (uint i = 0; i < _tokensInUse.size(); i++) {
-
-		cout << "NewBuffer: " << &newBuf << newBuf << endl;
-		stringstream stream;
-		printBuffers(stream);
-		cout << stream;
-
-		_tokensInUse[i]->printStrV();
+	for (uint i = 0; i < _tokensInUse.size(); i++)
 		_tokensInUse[i]->move(newBuf);
-	}
 	_tokensInUse.clear();
 }
 

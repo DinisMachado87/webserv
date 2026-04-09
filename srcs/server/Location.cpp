@@ -3,13 +3,16 @@
 #include "Span.hpp"
 #include "StrView.hpp"
 #include "webServ.hpp"
+#include <bitset>
 #include <cstddef>
 #include <iostream>
 #include <sstream>
 
+using std::bitset;
 using std::size_t;
 using std::stringstream;
 
+const char *Location::_methodStrs[4] = {"DEFAULT", "GET", "POST", "DELETE"};
 // Public constructors and destructors
 
 Location::Location(std::string &strBuf, std::vector<StrView> &vecBuf,
@@ -109,7 +112,15 @@ void Location::printLocation(size_t index, stringstream &stream) const {
 	printStrvSpan("\tCGI Extensions: ", _cgiExtensions, stream);
 	printStrvSpan("\tCGI Paths: ", _cgiPath, stream);
 
-	stream << "\tAllowed Methods: " << static_cast<int>(_allowedMethods)
-		   << '\n';
-	stream << "GETCGIPATH .py: " << safeStr(findCgiPath(".py")) << "\n";
+	bool none = true;
+	stream << "\tAllowed Methods (bitset: " << bitset<8>(_allowedMethods)
+		   << "): ";
+	for (size_t method = GET; method <= DELETE; method++)
+		if ((1 << method) & _allowedMethods) {
+			stream << _methodStrs[method] << " ,";
+			none = false;
+		}
+	if (none)
+		stream << "NONE";
+	stream << '\n';
 }

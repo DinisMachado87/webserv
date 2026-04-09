@@ -15,6 +15,7 @@ struct Location {
 	Location &operator=(const Location &other);
 
 	enum _e_allowed_methods { DEFAULT, GET, POST, DELETE };
+	static const char *_methodStrs[4];
 	// Substructs
 	Overrides _overrides;
 	// Pointer to server defaults for comparison getters

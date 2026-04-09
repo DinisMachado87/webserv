@@ -1,4 +1,6 @@
 #include "ConfParser.hpp"
+#include "Location.hpp"
+#include "Logger.hpp"
 #include "Server.hpp"
 #include "StrView.hpp"
 #include "Token.hpp"
@@ -12,6 +14,7 @@
 #include <map>
 #include <ostream>
 #include <sstream>
+#include <stdexcept>
 #include <stdlib.h>
 #include <string>
 #include <utility>
@@ -21,6 +24,7 @@ using std::cerr;
 using std::endl;
 using std::map;
 using std::pair;
+using std::runtime_error;
 using std::string;
 using std::vector;
 typedef pair<map<uint, StrView>::iterator, bool> errorVecPair;
@@ -53,7 +57,7 @@ std::runtime_error ConfParser::parsingErr(const char *expected) const {
 
 // Private Methods
 void ConfParser::parseMethod() {
-	uchar method;
+	uchar method = Location::DEFAULT;
 	while (1) {
 		_token.loadNext();
 		switch (_token.getType()) {
@@ -132,6 +136,10 @@ void ConfParser::parseLocation() {
 		_token.loadNext();
 		switch (_token.getType()) {
 		case Token::CLOSEBLOCK:
+			if (_newLocation._cgiExtensions.len()
+				!= _newLocation._cgiPath.len())
+				throw runtime_error("Error parsing location: diferent number "
+									"of cgi extentions and paths");
 			_token.consolidateBuffer(_newServer->_strBuf);
 			_newServer->_locations.push_back(_newLocation);
 			_newLocation
@@ -148,6 +156,7 @@ void ConfParser::parseLocation() {
 }
 
 void ConfParser::parseServerLine() {
+	LOG(Logger::LOG, "Parsing location");
 	if (_token.compare("listen")) {
 		_token.loadNextOfType(Token::WORD, "listen address");
 
@@ -172,6 +181,7 @@ void ConfParser::parseServerLine() {
 }
 
 void ConfParser::nextServer() {
+	LOG_TITLE("Parsing new server");
 	while (1) {
 		switch (_token.loadNext()) {
 		case Token::WORD:
@@ -205,6 +215,7 @@ void ConfParser::createServers() {
 				throw parsingErr("\"server\"");
 			break;
 		case Token::ENDOFILE:
+			LOG(Logger::LOG, "Done Parsing");
 			return;
 		default:
 			throw parsingErr("{");

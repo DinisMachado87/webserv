@@ -53,7 +53,7 @@ void Server::getServerStr(stringstream &stream) const {
 		return;
 
 	stream << "----- SERVER -----" << '\n';
-	stream << "\nListen addresses (" << _listen.size() << "):" << '\n';
+	stream << "\nListen addresses :" << '\n';
 	for (size_t i = 0; i < _listen.size(); i++) {
 		stream << "  [" << i << "] Host: " << formatIP(_listen[i].getHost())
 			   << ", Port: " << _listen[i].getPort() << '\n';
@@ -64,9 +64,6 @@ void Server::getServerStr(stringstream &stream) const {
 	stream << "\nLocations: " << '\n';
 	for (size_t i = 0; i < _locations.size(); i++)
 		_locations[i].printLocation(i, stream);
-
-	printBufferSizes(stream);
-
 	stream << "-----" << '\n';
 }
 
