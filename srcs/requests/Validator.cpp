@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/09 13:27:15 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/09 14:47:48 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,6 +91,27 @@ Response* Validator::handleGet(Request* request, const Location* location)
 	{
 		if (errno == EACCES)
 			return makeErrorResponse(request, location, 403, "Forbidden");
+		
+		// Check if autoindexing is enabled and parent directory exists
+		if (location->_overrides.isAutoindexed())
+		{
+			std::string parentPath = resolvedPath;
+			size_t lastSlash = parentPath.find_last_of('/');
+			
+			if (lastSlash != std::string::npos && lastSlash > 0)
+			{
+				parentPath = parentPath.substr(0, lastSlash);
+				bool parentIsDir = false;
+				bool parentIsFile = false;
+				
+				if (inspectResolvedPath(parentPath, parentIsDir, parentIsFile) && parentIsDir)
+				{
+					// Parent directory exists, serve it as autoindex
+					return handleDirectory(request, location, parentPath);
+				}
+			}
+		}
+		
 		return makeErrorResponse(request, location, 404, "Not Found");
 	}
 
@@ -100,15 +121,7 @@ Response* Validator::handleGet(Request* request, const Location* location)
 		<< " _isCgi=" << isCgiPath(location, resolvedPath) << std::endl;
 
 	if (isDirectory)
-	{
-		if (location->_overrides.isAutoindexed())
-		{
-			request->printRequest();
-			return new DirectoryResponse(const_cast<Location*>(location), request);
-		}
-		else
-			return makeErrorResponse(request, location, 403, "Forbidden");
-	}
+		return handleDirectoryRequest(request, location, resolvedPath);
 	request->printRequest();
  	return new GetResponse(const_cast<Location*>(location), request);
 }
@@ -134,6 +147,7 @@ Response* Validator::handlePost(Request* request, const Location* location)
 		std::cout << "Resolved CGI script: " << resolvedPath << std::endl;
 		std::cout << "scriptName=" << scriptName
 			<< " pathInfo=" << pathInfo << std::endl;
+		request->printRequest();
 		return new CGIResponse(const_cast<Location*>(location), request, _server._listen[0].getPort());
 	}
 
@@ -450,4 +464,18 @@ Response* Validator::makeMethodNotAllowedResponse(Request* request, const Locati
 	** Later you may want to build an Allow header from location.
 	*/
 	return makeErrorResponse(request, location, 405, "Method Not Allowed");
+}
+
+Response* Validator::handleDirectory(Request* request, const Location* location, const std::string& directoryPath) const
+{
+	if (location->_overrides.isAutoindexed())
+	{
+		request->setFilePath(directoryPath);
+		request->printRequest();
+		return new DirectoryResponse(const_cast<Location*>(location), request);
+	}
+	else
+	{
+		return makeErrorResponse(request, location, 403, "Forbidden");
+	}
 }

@@ -39,6 +39,7 @@ private:
 	Response* handleGet(Request* request, const Location* location);
 	Response* handlePost(Request* request, const Location* location);
 	Response* handleDelete(Request* request, const Location* location);
+	Response* handleDirectory(Request* request, const Location* location, const std::string& directoryPath) const;
 
 	const Location* matchLocation(const Request* request) const;
 	bool isMethodAllowed(const Location* location, const Request* request) const;
