@@ -7,6 +7,7 @@
 #include "webServ.hpp"
 #include <algorithm>
 #include <cerrno>
+#include <cstddef>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -17,6 +18,7 @@
 #include <string>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 
 using std::cout;
 using std::endl;
@@ -31,7 +33,8 @@ Connection::Connection(const int fd, const Server &server,
 	ASocket(fd, server, serverAddr),
 	_validator(server),
 	_cur(0),
-	_back(0) {
+	_back(0),
+	_handleInState(REQUEST) {
 	for (size_t i = 0; i < RESPONSES_CUE_SIZE; i++)
 		_responses[i] = NULL;
 }
@@ -44,30 +47,61 @@ Connection::~Connection() {
 	}
 }
 
+ssize_t Connection::recvToBuffer(char *buffer) {
+	ssize_t bytesRead = recv(_fd, buffer, RECV_SIZE, 0);
+
+	if (bytesRead <= ERR && !(errno == EAGAIN || errno == EWOULDBLOCK))
+		LOG_ERROR(runtime_error("recv() failure reading from client"));
+	if (bytesRead <= 0)
+		return 0;
+
+	buffer[bytesRead] = '\0';
+	LOG(Logger::CONTENT, "RECV buffer: ");
+	LOG(Logger::CONTENT, buffer);
+	return bytesRead;
+}
+
 // Public Methods
 Connection *Connection::handleIn() {
 	LOGSOCK(Logger::LOG, "Connection Handel in ", _fd);
-	char buffer[RECV_SIZE + 1];
-	ssize_t bytesRead = recv(_fd, buffer, RECV_SIZE, 0);
-	if (bytesRead > 0) {
-		buffer[bytesRead] = '\0';
-		cout << "RECV buffer: " << buffer << endl;
-	} else if (bytesRead == 0) {
-		return NULL;
-	} else if (bytesRead >= ERR) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return NULL;
-		throw runtime_error("Error: recv() failure reading from client");
-	}
 
-	Request *request = _http.parse(buffer, bytesRead);
-	if (request)
+	Request *request = NULL;
+	char buffer[RECV_SIZE + 1];
+	ssize_t bytesRead = 0;
+
+	if (!(bytesRead = recvToBuffer(buffer)))
+		return NULL;
+
+	switch (_handleInState) {
+
+	case (REQUEST):
+		request = _http.parse(buffer, bytesRead);
+		if (!request)
+			return NULL;
+
 		_responses[_back] = _validator.handleRequest(request);
-	if (_responses[_back]) {
+		if (!_responses[_back]) {
+			LOG(Logger::WARNING, "Validator did not return response");
+			delete request;
+			return NULL;
+		}
+
 		LOGSOCKNUM(Logger::LOG, "Storing _response on slot ", _back, _fd);
 		_back = ((_back + 1) % RESPONSES_CUE_SIZE);
+	// 	_handleInState = INITBODY;
+	//
+	// case (INITBODY): // fallthrough
+	// 	if (DONE == _responses[_back]->readBodyFirst(buffer, bytesRead))
+	// 		_handleInState = LOOPBODY;
+	// 	return NULL;
+	//
+	// case (LOOPBODY):
+	// 	if (DONE == _responses[_back]->readBodyLoop(buffer, bytesRead))
+	// 		_handleInState = REQUEST;
+	//
+	default: // fallthrough
+		return NULL;
 	}
-	return NULL;
 }
 
 void Connection::handleOut() {
