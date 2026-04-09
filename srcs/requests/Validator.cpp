@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/09 14:47:48 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/09 15:34:14 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,7 +121,7 @@ Response* Validator::handleGet(Request* request, const Location* location)
 		<< " _isCgi=" << isCgiPath(location, resolvedPath) << std::endl;
 
 	if (isDirectory)
-		return handleDirectoryRequest(request, location, resolvedPath);
+		return handleDirectory(request, location, resolvedPath);
 	request->printRequest();
  	return new GetResponse(const_cast<Location*>(location), request);
 }

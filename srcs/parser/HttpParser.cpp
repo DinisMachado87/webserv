@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:23 by akosloff          #+#    #+#             */
-/*   Updated: 2026/04/09 14:05:50 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/09 15:35:54 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,8 +60,6 @@ Request* HttpParser::parse(char *rawBuffer, size_t bytesRead)
         }
         return NULL;
     }
-	std::cout << "parse: header found at index: " << _headerEnd << std::endl;
-	std::cout << "_buffer:\n" << _buffer << "\n" << std::endl;
     
 	Request* req = new Request();
 	req->setHeaderEnd(_headerEnd);
