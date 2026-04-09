@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/20 08:41:36 by akosloff          #+#    #+#             */
-/*   Updated: 2026/04/08 11:39:23 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/09 14:04:35 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,7 @@ public:
 	void setHasContentLength(bool hasContentLength);
 	void setTransferEncoding(const std::string& transferEncoding);
 	void setChunkSize(size_t chunkSize);
+	void setHeaderEnd(size_t headerEnd);
 	void setFilePath(const std::string& filePath);
 	void setScriptName(const std::string& scriptName);
 	void setPathInfo(const std::string& pathInfo);
@@ -78,6 +79,7 @@ public:
 	bool hasContentLength() const;
 	const std::string& getTransferEncoding() const;
 	size_t getChunkSize() const;
+	size_t getHeaderEnd() const;
 	const std::string& getFilePath() const;
 	const std::string& getScriptName() const;
 	const std::string& getPathInfo() const;
@@ -117,6 +119,7 @@ private:
 	size_t					_contentLength;
 	bool					_hasContentLength;
 	size_t					_chunkSize;
+	size_t					_headerEnd;
 	std::string				_body;
 	int						_clientFD;
 	std::string				_remoteAddr;

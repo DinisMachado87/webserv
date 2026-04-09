@@ -27,7 +27,8 @@ public:
 	int		generateHeader(void);
 	int		deleteFile(void);
 	bool	sendResponse(const int &clientFD);
-
+	int		setResponseBody(void);
+	
 	DeleteResponse(const DeleteResponse &other);
 	DeleteResponse &	operator=(const DeleteResponse &other);
 };

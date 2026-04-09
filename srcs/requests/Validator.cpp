@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/08 13:36:19 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/09 13:27:15 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,8 @@
 #include "../server/Server.hpp"
 #include "../responses/Response.hpp"
 #include "../responses/GetResponse.hpp"
-//#include "../responses/PostResponse.hpp"
-//#include "../responses/DeleteResponse.hpp"
+#include "../responses/PostResponse.hpp"
+#include "../responses/DeleteResponse.hpp"
 #include "../responses/CGIResponse.hpp"
 #include "../responses/DirectoryResponse.hpp"
 #include "../responses/ErrorResponse.hpp"
@@ -151,8 +151,8 @@ Response* Validator::handlePost(Request* request, const Location* location)
 
 	request->printRequest();
 	
-	return makeErrorResponse(request, location, 405, "Post request not called yet");
-	//return new PostResponse(const_cast<Location*>(location), request);
+	//return makeErrorResponse(request, location, 405, "Post request not called yet");
+	return new PostResponse(const_cast<Location*>(location), request);
 }
 
 Response* Validator::handleDelete(Request* request, const Location* location)
@@ -186,8 +186,8 @@ Response* Validator::handleDelete(Request* request, const Location* location)
 		<< " _isRegularFile=" << isRegularFile << std::endl;
 
 	request->printRequest();
-	return makeErrorResponse(request, location, 405, "Delete request not called yet");
-	//return new DeleteResponse(const_cast<Location*>(location), request);
+	//return makeErrorResponse(request, location, 405, "Delete request not called yet");
+	return new DeleteResponse(const_cast<Location*>(location), request);
 }
 
 /*

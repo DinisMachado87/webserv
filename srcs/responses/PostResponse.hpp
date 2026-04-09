@@ -26,7 +26,8 @@ public:
 	private:
 	int		generateHeader(void);
 	int		actionPost(void);
-	bool	PostResponse::sendResponse(const int &clientFD);
+	bool	sendResponse(const int &clientFD);
+	int		setResponseBody(void);
 
 
 	PostResponse(const PostResponse &other);
