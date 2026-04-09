@@ -2,6 +2,7 @@
 
 #include "DirectoryResponse.hpp"
 #include "ErrorResponse.hpp"
+#include "../logger/Logger.hpp"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sstream>
@@ -35,6 +36,7 @@ int	DirectoryResponse::generateHeader(void)
 
 int	DirectoryResponse::setResponseBody(void)
 {
+	LOG(Logger::LOG, "DirectoryResponse: creating index");
 	DIR *dir = opendir(_request->getFilePath().c_str());
 	if (!dir)
 		return -1;
@@ -43,10 +45,10 @@ int	DirectoryResponse::setResponseBody(void)
 	body << "<!DOCTYPE html>\r\n";
 	body << "<html>\r\n";
 	body << "<head>\r\n";
-	body << "<title>Index of " << _request->getFilePath() << "</title>\r\n";
+	body << "<title>Index of " << getLastFolderName(_request->getFilePath()) << "</title>\r\n";
 	body << "</head>\r\n";
 	body << "<body>\r\n";
-	body << "<h1>Index of " << _request->getFilePath() << "</h1>\r\n";
+	body << "<h1>Index of " << getLastFolderName(_request->getFilePath()) << "</h1>\r\n";
 	body << "<ul>\r\n";
 
 	struct dirent *entry;
@@ -95,17 +97,36 @@ bool	DirectoryResponse::sendResponse(const int &clientFD)
 		ssize_t	ret = 0;
 		ret = send(clientFD, _responseHeader.c_str(), _responseHeader.size(), 0);
 		if (ret < 0)
-			throw std::runtime_error("sendResponse: send failure");
+			throw std::runtime_error("DirectoryResponse: sendResponse: send failure");
 		ret = send(clientFD, _responseBody.c_str(), _responseBody.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("sendResponse: send failure");
-		// std::cout << "Sent to client:\n" << _responseHeader << _responseBody << std::endl;
+		LOG(Logger::LOG, "DirectoryResponse: response sent");
+		LOG(Logger::CONTENT, "DirectoryResponse: Sent to client:");
+		LOG(Logger::CONTENT, _responseHeader.c_str());
+		LOG(Logger::CONTENT, _responseBody.c_str());
 	}
 	catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
+		LOG(Logger::ERROR, e.what());
 		ErrorResponse error(_location, NULL);
 		error.setErrorCode(500);
 		error.sendResponse(clientFD);
 	}
 	return DONE;
+}
+
+std::string DirectoryResponse::getLastFolderName(const std::string& path)
+{
+    if (path.empty())
+        return "/";
+
+    size_t end = path.find_last_not_of('/');
+    if (end == std::string::npos)
+        return "/";
+
+    size_t start = path.find_last_of('/', end);
+    if (start == std::string::npos)
+        return path.substr(0, end + 1);
+
+    return path.substr(start + 1, end - start);
 }

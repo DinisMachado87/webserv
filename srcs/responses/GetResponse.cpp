@@ -6,12 +6,13 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/07 16:42:39 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/08 12:46:13 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "GetResponse.hpp"
 #include "ErrorResponse.hpp"
+#include "../logger/Logger.hpp"
 
 GetResponse::GetResponse(Location* loc, Request* req) : Response(loc, req)
 {
@@ -39,6 +40,7 @@ int	GetResponse::generateHeader(void)
 
 int	GetResponse::setResponseBody(void)
 {
+	LOG(Logger::LOG, "GetResponse: reading file");
 	ssize_t	res = 1;
 	int		fd = open(_request->getFilePath().c_str(), O_RDONLY);
 	if (res < 0)
