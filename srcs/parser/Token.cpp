@@ -1,4 +1,5 @@
 #include "Token.hpp"
+#include "Logger.hpp"
 #include "Server.hpp"
 #include "StrView.hpp"
 #include "webServ.hpp"
@@ -16,7 +17,10 @@
 #include <unistd.h>
 #include <vector>
 
+using std::cout;
+using std::endl;
 using std::string;
+using std::stringstream;
 using std::strtol;
 using std::vector;
 
@@ -27,7 +31,8 @@ Token::Token(const uchar *table, std::string &parsingString) :
 	_type(0),
 	_lineN(0),
 	_pendingQuote(false),
-	_strBuffSize(0) {}
+	_strBuffSize(0),
+	_vecBuffConsolidationIndex(0) {}
 
 Token::~Token() {}
 
@@ -112,8 +117,8 @@ uchar Token::loadNextCore(const bool keepSpaces) {
 		case WORD: // Extract Token
 			_strV.setStart(str);
 			if (keepSpaces)
-				while (WORD == _isDelimiter[(uchar)(*str)] ||
-					   SPACE == _isDelimiter[(uchar)(*str)])
+				while (WORD == _isDelimiter[(uchar)(*str)]
+					   || SPACE == _isDelimiter[(uchar)(*str)])
 					str++;
 			else
 				while (WORD == _isDelimiter[(uchar)(*str)])
@@ -261,22 +266,27 @@ void Token::trackInUseToken(StrView *strV) {
 	_strBuffSize += strV->getLen() + 1;
 }
 
+void Token::printBuffers(stringstream &stream) {
+	stream << "_tokensInUse: ";
+	for (size_t i = 0; i < _tokensInUse.size(); i++)
+		stream << _tokensInUse[i]->getStr() << "\n";
+}
+
 void Token::consolidateStrVSpans(vector<StrView> &vecBuf, string &newStrBuf) {
-	std::cout << "Consolidating StrView Span Buffer: " << std::endl;
+	LOG(Logger::LOG, "Consolidating Span Buffer: ");
 
 	size_t i = _vecBuffConsolidationIndex;
+	LOGNUM(Logger::LOG, "_vecBuffConsolidation index: ", i);
 	for (; i < vecBuf.size(); i++)
 		vecBuf[i].move(newStrBuf);
 	_vecBuffConsolidationIndex = vecBuf.size();
 }
 
 void Token::consolidateBuffer(string &newBuf) {
-	std::cout << "Consolidating StrView Buffer: " << std::endl;
+	LOG(Logger::LOG, "Consolidating StrBuffer: ");
 
-	for (uint i = 0; i < _tokensInUse.size(); i++) {
-		_tokensInUse[i]->printStrV();
+	for (uint i = 0; i < _tokensInUse.size(); i++)
 		_tokensInUse[i]->move(newBuf);
-	}
 	_tokensInUse.clear();
 }
 

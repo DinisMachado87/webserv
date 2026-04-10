@@ -11,11 +11,13 @@
 
 class Connection : public ASocket {
 private:
+	enum _handleInState { REQUEST, RESPONSE, INITBODY, LOOPBODY };
 	HttpParser _http;
 	Validator _validator;
 	Response *_responses[RESPONSES_CUE_SIZE];
 	size_t _cur;
 	size_t _back;
+	uchar _handleInState;
 
 	// Explicit disables
 	Connection(const int fd, const Server &server,
@@ -34,6 +36,7 @@ public:
 	// Event tracking
 	uint32_t getEventsNextLoop();
 	bool isFull() const;
+	ssize_t recvToBuffer(char *buffer);
 };
 
 #endif

@@ -16,7 +16,7 @@
 #define RECV_SIZE 1000
 #define CHUNK_SIZE 1000
 // logger
-#define LOGLEVEL LOG
+#define LOGLEVEL CONTENT
 #define LOGGING true
 #define LOGTOCLI true
 #define LOGTOFILE true

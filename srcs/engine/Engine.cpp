@@ -22,6 +22,7 @@ using std::exception;
 using std::map;
 using std::runtime_error;
 using std::string;
+using std::stringstream;
 using std::vector;
 
 // Public constructors and destructors
@@ -114,7 +115,7 @@ void Engine::createSockets() {
 
 void Engine::logFlagUpdates(ASocket *socket, uint32_t events,
 							uint32_t newEvents) {
-	std::stringstream stream;
+	stringstream stream;
 	bool newEventsIn = newEvents & EPOLLIN;
 	bool newEventsOut = newEvents & EPOLLOUT;
 	bool EventsIn = events & EPOLLIN;
@@ -126,7 +127,7 @@ void Engine::logFlagUpdates(ASocket *socket, uint32_t events,
 	if (!newEventsOut && EventsOut)
 		LOGSOCK(Logger::LOG, "Removing EPOLLOUT", socket->getFd());
 	else if (newEventsOut && !EventsOut)
-		LOGSOCK(Logger::LOG, "taking EPOLLOUT", socket->getFd());
+		LOGSOCK(Logger::LOG, "Adding EPOLLOUT", socket->getFd());
 }
 
 void Engine::updateFlags(ASocket *socket) {

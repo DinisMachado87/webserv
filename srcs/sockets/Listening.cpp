@@ -41,10 +41,10 @@ Listening::~Listening() {}
 // Public Methods
 Listening *Listening::create(const Server &server, const Listen &listenSock) {
 	LOG_TITLE("CREATING SOCKET");
-	LOG_SERVER("Starting Server:\n", server);
+	LOG_SERVER("", server);
 
-	struct sockaddr_in addr = {
-		AF_INET, htons(listenSock.getPort()), {listenSock.getHost()}, {0}};
+	struct sockaddr_in addr
+		= {AF_INET, htons(listenSock.getPort()), {listenSock.getHost()}, {0}};
 
 	int fdSock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
 	if (OK <= fdSock)
@@ -53,9 +53,10 @@ Listening *Listening::create(const Server &server, const Listen &listenSock) {
 		throw handleFdError("Error creating listening socket: ", fdSock);
 
 	int enable = 1;
-	if (OK == setNonBlocking(fdSock) &&
-		OK == setsockopt(fdSock, SOL_SOCKET, SO_REUSEADDR, &enable,
-						 sizeof(enable)))
+	if (OK == setNonBlocking(fdSock)
+		&& OK
+			   == setsockopt(fdSock, SOL_SOCKET, SO_REUSEADDR, &enable,
+							 sizeof(enable)))
 		LOG(Logger::LOG, "Set Listening Socket options");
 	else
 		throw handleFdError(
@@ -75,7 +76,7 @@ Listening *Listening::create(const Server &server, const Listen &listenSock) {
 }
 
 Connection *Listening::handleIn() {
-	LOGSOCK(Logger::LOG, "Handel in ", _fd);
+	LOGSOCK(Logger::LOG, "Listening Handel in ", _fd);
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
 

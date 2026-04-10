@@ -1,10 +1,14 @@
 #include "StrView.hpp"
+#include "Logger.hpp"
 #include "webServ.hpp"
 #include <cstddef>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unistd.h>
+
+using std::string;
 
 // Public constructors and destructors
 StrView::StrView(std::string &buffer, const int offset, const uchar len) :
@@ -60,7 +64,7 @@ bool StrView::operator<(const StrView &other) const {
 // Getters
 const char *StrView::getStart() const { return _rawBuffer->c_str() + _offset; };
 const char *StrView::getEnd() const { return getStart() + (_len - 1); }
-std::string StrView::getStr() const { return std::string(getStart(), _len); }
+string StrView::getStr() const { return string(getStart(), _len); }
 size_t StrView::getBufferSize() const { return _rawBuffer->length(); }
 uint StrView::getOffset() const { return _offset; };
 uint StrView::getLen() const { return _len; };
@@ -81,6 +85,12 @@ void StrView::setStartAndLen(const char *start, uint len) {
 // Public Methods
 void StrView::updateOffset(uint increase) { _offset += increase; }
 void StrView::printStrV() const { write(1, getStart(), _len); }
+void StrView::streamStrV(std::stringstream &stream) const {
+	stream << getStr() << "\n";
+}
+void StrView::streamBuffer(std::stringstream &stream) const {
+	stream << _rawBuffer << "\n";
+}
 bool StrView::compare(StrView &strV) const { return compare(strV.getStart()); }
 void StrView::nullTerminate() { _rawBuffer[_offset + _len - 1] = '\0'; }
 void StrView::trimEnd(const size_t trimSize) {
@@ -100,13 +110,15 @@ bool StrView::ncompare(const char *str, size_t len) const {
 };
 
 void StrView::move(std::string &toBuffer) {
+	LOG(Logger::CONTENT, getStr().c_str());
+
 	int offset = toBuffer.length();
-
-	std::cout << "moving: ";
-	printStrV();
-
 	toBuffer.append(getStart(), _len);
 	toBuffer.push_back('\0');
 	_rawBuffer = &toBuffer;
 	_offset = offset;
+}
+
+void StrView::streamStrView(std::stringstream &stream) {
+	stream << getStr() << &_rawBuffer << _len << _offset;
 }

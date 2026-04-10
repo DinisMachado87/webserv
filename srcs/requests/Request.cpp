@@ -20,6 +20,7 @@ Request::Request() :
 	_contentLength(0),
 	_hasContentLength(false),
 	_chunkSize(0),
+	_headerEnd(0),
 	_body(),
 	_clientFD(-1),
 	_remoteAddr(),
@@ -29,6 +30,7 @@ Request::Request() :
 	_parseErrorCode(0),
 	_parseErrorMessage()
 {
+	_headerEnd = std::string::npos;
 }
 
 Request::~Request()
@@ -95,6 +97,11 @@ void Request::setTransferEncoding(const std::string& transferEncoding)
 void Request::setChunkSize(size_t chunkSize)
 {
 	_chunkSize = chunkSize;
+}
+
+void Request::setHeaderEnd(size_t headerEnd)
+{
+	_headerEnd = headerEnd;
 }
 
 void Request::setFilePath(const std::string& filePath)
@@ -225,6 +232,11 @@ const std::string& Request::getTransferEncoding() const
 size_t Request::getChunkSize() const
 {
 	return _chunkSize;
+}
+
+size_t Request::getHeaderEnd() const
+{
+	return _headerEnd;
 }
 
 const std::string& Request::getFilePath() const

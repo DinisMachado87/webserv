@@ -114,3 +114,9 @@ bool	PostResponse::sendResponse(const int &clientFD)
 	}
 	return DONE;
 }
+
+int	PostResponse::setResponseBody(void)
+{
+	std::cout << "PostResponse: No body to set\n";
+	return 0;
+}

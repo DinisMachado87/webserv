@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   DeleteResponse.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
+/*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/31 14:25:57 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/08 12:32:55 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/09 13:30:21 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ int	DeleteResponse::deleteFile(void)
 bool	DeleteResponse::sendResponse(const int &clientFD)
 {
 	try {
-		if (deleteFile() != 0);
+		if (deleteFile() != 0)
 			throw std::runtime_error("DeleteResponse: could not delete file");
 		LOG(Logger::LOG, "Delete Response: file deleted");
 		generateHeader();
@@ -70,4 +70,9 @@ bool	DeleteResponse::sendResponse(const int &clientFD)
 		error.sendResponse(clientFD);
 	}
 	return DONE;
+}
+int	DeleteResponse::setResponseBody(void)
+{
+	std::cout << "DeleteResponse: No body to set\n";
+	return 0;
 }

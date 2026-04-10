@@ -128,7 +128,7 @@ void Logger::logTitle(const char *msg) {
 }
 
 void Logger::logServer(const char *msg, const Server &server) {
-	if (LOG > _level)
+	if (CONTENT > _level)
 		return;
 	stringstream stream;
 	stream << msg << '\n';

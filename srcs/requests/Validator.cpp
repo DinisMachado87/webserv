@@ -6,7 +6,7 @@
 /*   By: akosloff <akosloff@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/24 00:00:00 by                   #+#    #+#             */
-/*   Updated: 2026/04/08 13:36:19 by akosloff         ###   ########.fr       */
+/*   Updated: 2026/04/09 17:44:05 by akosloff         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,8 @@
 #include "../server/Server.hpp"
 #include "../responses/Response.hpp"
 #include "../responses/GetResponse.hpp"
-//#include "../responses/PostResponse.hpp"
-//#include "../responses/DeleteResponse.hpp"
+#include "../responses/PostResponse.hpp"
+#include "../responses/DeleteResponse.hpp"
 #include "../responses/CGIResponse.hpp"
 #include "../responses/DirectoryResponse.hpp"
 #include "../responses/ErrorResponse.hpp"
@@ -46,9 +46,12 @@ Response* Validator::handleRequest(Request* request)
 	if (request->hasParseError())
 		return makeErrorResponse(request, location, request->getParseErrorCode(), request->getParseErrorMessage());
 
-
 	if (!isMethodAllowed(location, request))
-		return makeMethodNotAllowedResponse(request, location);
+	{
+	    std::cout << "METHOD NOT ALLOWED!" << std::endl;
+	    return makeMethodNotAllowedResponse(request, location);
+	}
+	std::cout << "METHOD ALLOWED, proceeding..." << std::endl;
 
 	if (!validateRequest(request, location))
 		return makeErrorResponse(request, location, 400, "Bad Request");
@@ -91,6 +94,27 @@ Response* Validator::handleGet(Request* request, const Location* location)
 	{
 		if (errno == EACCES)
 			return makeErrorResponse(request, location, 403, "Forbidden");
+		
+		// Check if autoindexing is enabled and parent directory exists
+		if (location->_overrides.isAutoindexed())
+		{
+			std::string parentPath = resolvedPath;
+			size_t lastSlash = parentPath.find_last_of('/');
+			
+			if (lastSlash != std::string::npos && lastSlash > 0)
+			{
+				parentPath = parentPath.substr(0, lastSlash);
+				bool parentIsDir = false;
+				bool parentIsFile = false;
+				
+				if (inspectResolvedPath(parentPath, parentIsDir, parentIsFile) && parentIsDir)
+				{
+					// Parent directory exists, serve it as autoindex
+					return handleDirectory(request, location, parentPath);
+				}
+			}
+		}
+		
 		return makeErrorResponse(request, location, 404, "Not Found");
 	}
 
@@ -100,15 +124,7 @@ Response* Validator::handleGet(Request* request, const Location* location)
 		<< " _isCgi=" << isCgiPath(location, resolvedPath) << std::endl;
 
 	if (isDirectory)
-	{
-		if (location->_overrides.isAutoindexed())
-		{
-			request->printRequest();
-			return new DirectoryResponse(const_cast<Location*>(location), request);
-		}
-		else
-			return makeErrorResponse(request, location, 403, "Forbidden");
-	}
+		return handleDirectory(request, location, resolvedPath);
 	request->printRequest();
  	return new GetResponse(const_cast<Location*>(location), request);
 }
@@ -134,6 +150,7 @@ Response* Validator::handlePost(Request* request, const Location* location)
 		std::cout << "Resolved CGI script: " << resolvedPath << std::endl;
 		std::cout << "scriptName=" << scriptName
 			<< " pathInfo=" << pathInfo << std::endl;
+		request->printRequest();
 		return new CGIResponse(const_cast<Location*>(location), request, _server._listen[0].getPort());
 	}
 
@@ -151,8 +168,8 @@ Response* Validator::handlePost(Request* request, const Location* location)
 
 	request->printRequest();
 	
-	return makeErrorResponse(request, location, 405, "Post request not called yet");
-	//return new PostResponse(const_cast<Location*>(location), request);
+	//return makeErrorResponse(request, location, 405, "Post request not called yet");
+	return new PostResponse(const_cast<Location*>(location), request);
 }
 
 Response* Validator::handleDelete(Request* request, const Location* location)
@@ -186,8 +203,8 @@ Response* Validator::handleDelete(Request* request, const Location* location)
 		<< " _isRegularFile=" << isRegularFile << std::endl;
 
 	request->printRequest();
-	return makeErrorResponse(request, location, 405, "Delete request not called yet");
-	//return new DeleteResponse(const_cast<Location*>(location), request);
+	//return makeErrorResponse(request, location, 405, "Delete request not called yet");
+	return new DeleteResponse(const_cast<Location*>(location), request);
 }
 
 /*
@@ -199,8 +216,15 @@ const Location* Validator::matchLocation(const Request* request) const
 	size_t				i;
 	size_t				bestLen;
 	const Location*		best;
-	const std::string&	path = request->getRequestPath();
+	std::string	path = request->getRequestPath();
 
+    // Normalize path: remove duplicate slashes
+    while (path.find("//") != std::string::npos)
+    {
+        size_t pos = path.find("//");
+        path.erase(pos, 1);
+    }
+	
 	bestLen = 0;
 	best = NULL;
 	i = 0;
@@ -251,7 +275,7 @@ const Location* Validator::matchLocation(const Request* request) const
 	return best;
 }
 
-bool Validator::isMethodAllowed(const Location* location, const Request* request) const
+/* bool Validator::isMethodAllowed(const Location* location, const Request* request) const
 {
 	if (location == NULL)
 		return false;
@@ -262,7 +286,33 @@ bool Validator::isMethodAllowed(const Location* location, const Request* request
 	if (request->getType() == REQ_DELETE)
 		return (location->isAllowedMethod(Location::DELETE) != 0);
 	return false;
+} */
+
+
+// ...existing code...
+bool Validator::isMethodAllowed(const Location* location, const Request* request) const
+{
+    if (location == NULL)
+        return false;
+    if (request->getType() == REQ_GET)
+    {
+        std::cout << "GET allowed: " << location->isAllowedMethod(Location::GET) << std::endl;
+        return (location->isAllowedMethod(Location::GET) != 0);
+    }
+    if (request->getType() == REQ_POST)
+    {
+        std::cout << "POST allowed: " << location->isAllowedMethod(Location::POST) << std::endl;
+        return (location->isAllowedMethod(Location::POST) != 0);
+    }
+    if (request->getType() == REQ_DELETE)
+    {
+        std::cout << "DELETE allowed: " << location->isAllowedMethod(Location::DELETE) << std::endl;
+        return (location->isAllowedMethod(Location::DELETE) != 0);
+    }
+    return false;
 }
+// ...existing code...
+
 
 bool Validator::validateRequest(const Request* request, const Location* location) const
 {
@@ -450,4 +500,18 @@ Response* Validator::makeMethodNotAllowedResponse(Request* request, const Locati
 	** Later you may want to build an Allow header from location.
 	*/
 	return makeErrorResponse(request, location, 405, "Method Not Allowed");
+}
+
+Response* Validator::handleDirectory(Request* request, const Location* location, const std::string& directoryPath) const
+{
+	if (location->_overrides.isAutoindexed())
+	{
+		request->setFilePath(directoryPath);
+		request->printRequest();
+		return new DirectoryResponse(const_cast<Location*>(location), request);
+	}
+	else
+	{
+		return makeErrorResponse(request, location, 403, "Forbidden");
+	}
 }
