@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/27 14:06:18 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/10 17:27:36 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/10 17:46:52 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,8 @@
 CGIResponse::CGIResponse(Location* loc, Request* req, const int& port) :
 	Response(loc, req),
 	_headerSent(0),
-	_totalRead(0),
 	_port(port),
+	_totalRead(0),
 	_readState(FULL)
 {
 	_requestBody.reserve(RECV_SIZE + 1);
@@ -84,9 +84,8 @@ bool	CGIResponse::readBodyChunked(char buf[], ssize_t bytesRead, ssize_t& start)
 	return ONGOING;
 }
 
-char*	CGIResponse::readLenChunked(char buf[], ssize_t bytesRead, ssize_t& start)
+char*	CGIResponse::readLenChunked(char buf[], ssize_t& start)
 {
-	ssize_t	ret = 0;
 	char*	nextRN = strstr(buf, "/r/n");
 	if (nextRN == NULL)
 			throw std::invalid_argument("CGIResponse: rLC: invalid chunked body");
@@ -123,7 +122,7 @@ bool	CGIResponse::readBodyLoop(char buf[], ssize_t bytesRead)
 	char*	nextRN = NULL;
 	switch (_readState) {
 		case CHUNK_LEN :
-			nextRN = readLenChunked(buf, bytesRead, start);
+			nextRN = readLenChunked(buf, start);
 			goto bod;
 		case CHUNK_BOD :
 			readBodyChunked(buf, bytesRead, start);
@@ -160,8 +159,10 @@ bod:
 		if (ret < toRead)
 			throw std::runtime_error("CGIResponse: readBodyFirst: write failure");
 		start += toRead;
-
 	}
+	_readBufEnd = 0;
+	_readState = CHUNK_LEN;
+	return ONGOING;
 }
 
 
@@ -297,7 +298,7 @@ bool	CGIResponse::sendResponse(const int &clientFD)
 		}
 
 		int	toSend = std::min(chunk, bodySize - totalSent);
-		std::string	hex = toHex(toSend);
+		std::string	hex = strToHex(toSend);
 		ret = send(clientFD, hex.c_str(), hex.size(), 0);
 		if (ret < 0)
 			throw std::runtime_error("CGIResponse: sendResponse: send failure");

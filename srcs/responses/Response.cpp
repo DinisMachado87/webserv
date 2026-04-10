@@ -6,7 +6,7 @@
 /*   By: smoon <smoon@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/10 14:22:22 by smoon             #+#    #+#             */
-/*   Updated: 2026/04/09 13:18:03 by smoon            ###   ########.fr       */
+/*   Updated: 2026/04/10 17:48:04 by smoon            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,13 +40,17 @@ int	Response::generateHeader(void)
 	return 0;
 }
 
-bool	readBodyFirst(char buffer[], ssize_t bytesRead)
+bool	Response::readBodyFirst(char buffer[], ssize_t bytesRead)
 {
+	(void)buffer;
+	(void)bytesRead;
 	return DONE;
 }
 
-bool	readBodyLoop(char buffer[], ssize_t bytesRead)
+bool	Response::readBodyLoop(char buffer[], ssize_t bytesRead)
 {
+	(void)buffer;
+	(void)bytesRead;
 	return DONE;
 }
 
@@ -74,6 +78,11 @@ bool	Response::sendResponse(const int &clientFD)
 		error.sendResponse(clientFD);
 	}
 	return DONE;
+}
+
+int		Response::setResponseBody()
+{
+	return 0;
 }
 
 void	Response::getTime(char* buf, int bufSize)

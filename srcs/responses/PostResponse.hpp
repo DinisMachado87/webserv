@@ -27,7 +27,7 @@ public:
 	int		generateHeader(void);
 	int		actionPost(void);
 	bool	sendResponse(const int &clientFD);
-
+	int		setResponseBody(void);
 
 	PostResponse(const PostResponse &other);
 	PostResponse &	operator=(const PostResponse &other);

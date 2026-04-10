@@ -37,7 +37,7 @@ protected:
 	std::string		_responseHeader;
 	std::string		_responseBody;
 	Request*		_request;
-	virtual int		setResponseBody() = 0;
+	virtual int		setResponseBody();
 	virtual int		generateHeader(void) = 0;
 	void			getTime(char* buf, int bufSize);
 
